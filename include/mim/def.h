@@ -14,6 +14,11 @@
 #include "mim/util/util.h"
 #include "mim/util/vector.h"
 
+#ifdef MIM_IMMER
+#    include <immer/set.hpp>
+#    include <immer/set_transient.hpp>
+#endif
+
 // clang-format off
 #define MIM_NODE(m)                                                                                                \
     m(Lit,    Judge::Intro) /* keep this first - causes Lit to appear left in Def::less/Def::greater*/             \
@@ -60,6 +65,16 @@
 
 namespace mim {
 
+template<class T>
+bool intersects(const T& a, const T& b) {
+    // Iterate over the smaller set for efficiency
+    if (a.size() > b.size()) return intersects(b, a);
+
+    for (auto it = a.begin(); it != a.end(); ++it)
+        if (b.count(*it)) return true;
+    return false;
+}
+
 class App;
 class Axm;
 class Var;
@@ -84,7 +99,11 @@ template<class To>
 using MutMap  = GIDMap<Def*, To>;
 using MutSet  = GIDSet<Def*>;
 using Mut2Mut = MutMap<Def*>;
-using Muts    = Sets<Def>::Set;
+#ifdef MIM_IMMER
+using Muts = immer::set<Def*, GIDHash<Def*>, std::equal_to<Def*>>;
+#else
+using Muts = Sets<Def>::Set;
+#endif
 ///@}
 
 /// @name Var
@@ -94,7 +113,12 @@ template<class To>
 using VarMap  = GIDMap<const Var*, To>;
 using VarSet  = GIDSet<const Var*>;
 using Var2Var = VarMap<const Var*>;
-using Vars    = Sets<const Var>::Set;
+#ifdef MIM_IMMER
+using Vars = immer::set<const Var*, GIDHash<const Var*>, std::equal_to<const Var*>>;
+#else
+using Vars = Sets<const Var>::Set;
+#endif
+
 ///@}
 
 using NormalizeFn = const Def* (*)(const Def*, const Def*, const Def*);
@@ -192,7 +216,7 @@ class // D is only needed to make the resolution `D::template set` lazy
 #ifdef _MSC_VER
     __declspec(empty_bases)
 #endif
-        Setters {
+    Setters {
 private:
     P* super() { return static_cast<P*>(this); }
     const P* super() const { return static_cast<const P*>(this); }
@@ -647,7 +671,12 @@ private:
 
     template<bool init>
     Vars free_vars(bool&, uint32_t);
+
+public:
     void invalidate();
+    bool is_cache_empty() { return vars_.empty(); }
+
+private:
     const Def** ops_ptr() const {
         return reinterpret_cast<const Def**>(reinterpret_cast<char*>(const_cast<Def*>(this + 1)));
     }
@@ -680,7 +709,7 @@ private:
     u32 gid_;
     u32 num_ops_;
     size_t hash_;
-    Vars vars_; // Mutable: local vars; Immutable: free vars.
+    Vars vars_; // Immutable: local vars; Mutable: free vars.
     Muts muts_; // Immutable: local_muts; Mutable: users;
     mutable u32 tid_ = 0;
     mutable const Def* type_;

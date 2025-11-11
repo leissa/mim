@@ -192,7 +192,11 @@ const Def* VarRewriter::rewrite(const Def* old_def) {
 const Def* VarRewriter::rewrite_mut(Def* mut) {
     if (auto var = mut->has_var()) {
         auto& vars = vars_.back();
-        vars       = world().vars().insert(vars, var);
+#ifdef MIM_IMMER
+        vars = vars.insert(var);
+#else
+        vars = world().vars().insert(vars, var);
+#endif
     }
 
     return Rewriter::rewrite_mut(mut);

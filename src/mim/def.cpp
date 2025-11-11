@@ -38,10 +38,14 @@ Def::Def(World* world, Node node, const Def* type, Defs ops, flags_t flags)
         hash_ = mim::hash_begin(node_t(Node::Univ));
     } else if (auto var = isa<Var>()) {
         assert(flags_ == 0); // if we ever need flags here, we need to hash that
-        auto mut     = ops[0];
-        auto& world  = mut->world();
-        gid_         = world.next_gid();
-        vars_        = Vars(var);
+        auto mut    = ops[0];
+        auto& world = mut->world();
+        gid_        = world.next_gid();
+#ifdef MIM_IMMER
+        vars_ = Vars({var});
+#else
+        vars_ = Vars(var);
+#endif
         ops_ptr()[0] = mut;
         hash_        = hash_begin(node_t(Node::Var));
         hash_        = hash_combine(hash_, mut->gid());
@@ -49,29 +53,50 @@ Def::Def(World* world, Node node, const Def* type, Defs ops, flags_t flags)
         hash_ = hash_begin(u8(node));
         hash_ = hash_combine(hash_, flags_);
 
+#ifdef MIM_IMMER
+        auto tvars = Vars::transient_type();
+        auto tmuts = Muts::transient_type();
+#endif
         if (type) {
             world = &type->world();
             dep_ |= type->dep_;
+#ifdef MIM_IMMER
+            tvars = type->local_vars().transient();
+            tmuts = type->local_muts().transient();
+#else
             vars_ = type->local_vars();
             muts_ = type->local_muts();
+#endif
             hash_ = hash_combine(hash_, type->gid());
         } else {
             world = &ops[0]->world();
         }
 
+#ifndef MIM_IMMER
         auto vars = &world->vars();
         auto muts = &world->muts();
-        auto ptr  = ops_ptr();
-        gid_      = world->next_gid();
+#endif
+        auto ptr = ops_ptr();
+        gid_     = world->next_gid();
 
         for (size_t i = 0, e = ops.size(); i != e; ++i) {
             auto op = ops[i];
             ptr[i]  = op;
             dep_ |= op->dep_;
+#ifdef MIM_IMMER
+            for (auto var : op->local_vars()) tvars.insert(var);
+            for (auto mut : op->local_muts()) tmuts.insert(mut);
+#else
             vars_ = vars->merge(vars_, op->local_vars());
             muts_ = muts->merge(muts_, op->local_muts());
+#endif
             hash_ = hash_combine(hash_, op->gid());
         }
+
+#ifdef MIM_IMMER
+        vars_ = tvars.persistent();
+        muts_ = tmuts.persistent();
+#endif
     }
 }
 
@@ -176,7 +201,11 @@ bool Def::is_immutabilizable() {
 
     if (auto v = has_var()) {
         for (auto op : deps())
+#ifdef MIM_IMMER
+            if (op->free_vars().count(v)) return false;
+#else
             if (op->free_vars().contains(v)) return false;
+#endif
     }
     for (auto op : deps()) {
         for (auto mut : op->local_muts())
@@ -327,19 +356,31 @@ const Def* Def::var_type() {
 }
 
 Muts Def::local_muts() const {
-    if (auto mut = isa_mut()) return Muts(mut);
+    if (auto mut = isa_mut())
+#ifdef MIM_IMMER
+        return Muts({mut});
+#else
+        return Muts(mut);
+#endif
     return muts_;
 }
 
 Vars Def::free_vars() const {
     if (auto mut = isa_mut()) return mut->free_vars();
 
+#ifdef MIM_IMMER
+    auto fvs = local_vars().transient();
+    for (auto mut : local_muts())
+        for (auto var : mut->free_vars())
+            fvs.insert(var);
+    return fvs.persistent();
+#else
     auto& vars = world().vars();
     auto fvs   = local_vars();
     for (auto mut : local_muts())
         fvs = vars.merge(fvs, mut->free_vars());
-
     return fvs;
+#endif
 }
 
 Vars Def::local_vars() const { return mut_ ? Vars() : vars_; }
@@ -379,9 +420,31 @@ Vars Def::free_vars(bool& todo, uint32_t run) {
 
     mark_ = run;
 
-    auto fvs0  = vars_;
-    auto fvs   = fvs0;
+    auto fvs0 = vars_;
+
+#ifdef MIM_IMMER
+    auto fvs = fvs0.transient();
+
+    for (auto op : deps()) {
+        if constexpr (init)
+            for (auto var : op->local_vars())
+                fvs.insert(var);
+
+        for (auto mut : op->local_muts()) {
+            if constexpr (init) mut->muts_ = mut->muts_.insert(this); // register "this" as user of local_mut
+            for (auto var : mut->free_vars<init>(todo, run))
+                fvs.insert(var);
+        }
+    }
+
+    if (auto var = has_var()) fvs.erase(var); // FV(λx.e) = FV(e) \ {x}
+
+    vars_ = fvs.persistent();
+    if constexpr (!init) todo |= fvs0 != vars_;
+    return vars_;
+#else
     auto& w    = world();
+    auto fvs   = fvs0;
     auto& muts = w.muts();
     auto& vars = w.vars();
 
@@ -399,6 +462,7 @@ Vars Def::free_vars(bool& todo, uint32_t run) {
     if constexpr (!init) todo |= fvs0 != fvs;
 
     return vars_ = fvs;
+#endif
 }
 
 void Def::invalidate() {
@@ -520,8 +584,13 @@ Def::Cmp Def::cmp(const Def* a, const Def* b) {
         auto vb = b->as<Var>();
         auto ma = va->mut();
         auto mb = vb->mut();
+#ifdef MIM_IMMER
+        if (ma->is_set() && ma->free_vars().count(vb)) return Cmp::L;
+        if (mb->is_set() && mb->free_vars().count(va)) return Cmp::G;
+#else
         if (ma->is_set() && ma->free_vars().contains(vb)) return Cmp::L;
         if (mb->is_set() && mb->free_vars().contains(va)) return Cmp::G;
+#endif
         return Cmp::U;
     }
 

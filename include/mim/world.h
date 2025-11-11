@@ -542,16 +542,18 @@ public:
     // clang-format off
     template<class Id, bool Normalize = true, class... Args> const Def* call(Id id, Args&&... args) { return call_<Normalize>(annex(id),   std::forward<Args>(args)...); }
     template<class Id, bool Normalize = true, class... Args> const Def* call(       Args&&... args) { return call_<Normalize>(annex<Id>(), std::forward<Args>(args)...); }
-    // clang-format on
-    ///@}
+// clang-format on
+///@}
 
-    /// @name Vars & Muts
-    /// Manges sets of Vars and Muts.
-    ///@{
+/// @name Vars & Muts
+/// Manges sets of Vars and Muts.
+///@{
+#ifndef MIM_IMMER
     [[nodiscard]] auto& vars() { return move_.vars; }
     [[nodiscard]] auto& muts() { return move_.muts; }
     [[nodiscard]] const auto& vars() const { return move_.vars; }
     [[nodiscard]] const auto& muts() const { return move_.muts; }
+#endif
 
     /// Yields the new body of `[mut->var() -> arg]mut`.
     /// The new body may have fewer elements as `mut->num_ops()` according to Def::reduction_offset.
@@ -736,8 +738,10 @@ private:
         absl::btree_map<flags_t, const Def*> flags2annex;
         absl::btree_map<Sym, Def*> sym2external;
         absl::flat_hash_set<const Def*, SeaHash, SeaEq> defs;
+#ifndef MIM_IMMER
         Sets<Def> muts;
         Sets<const Var> vars;
+#endif
         absl::flat_hash_map<std::pair<const Var*, const Def*>, const Reduct*> substs;
 
         friend void swap(Move& m1, Move& m2) noexcept {
@@ -747,8 +751,10 @@ private:
             swap(m1.arena.substs, m2.arena.substs);
             swap(m1.defs,         m2.defs);
             swap(m1.substs,       m2.substs);
+#ifndef MIM_IMMER
             swap(m1.vars,         m2.vars);
             swap(m1.muts,         m2.muts);
+#endif
             swap(m1.flags2annex,  m2.flags2annex);
             swap(m1.sym2external, m2.sym2external);
             // clang-format on

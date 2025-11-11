@@ -128,7 +128,11 @@ public:
     World& world() const { return world_; }
     const Node* root() const { return root_; }
     Vars vars() const { return vars_; } ///< All Var%s occurring in this Nest.
+#ifdef MIM_IMMER
+    bool contains(const Def* def) const { return intersects(vars(), def->free_vars()); }
+#else
     bool contains(const Def* def) const { return vars().has_intersection(def->free_vars()); }
+#endif
     bool is_recursive() const { return sccs().root()->is_recursive(); }
     ///@}
 

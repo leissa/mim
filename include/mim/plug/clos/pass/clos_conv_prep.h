@@ -30,7 +30,11 @@ public:
         return scope(lam) && scope(lam) != scope(curr_mut());
     }
 
+#ifdef MIM_IMMER
+    bool from_outer_scope(const Def* lam) { return intersects(curr_mut()->free_vars(), lam->free_vars()); }
+#else
     bool from_outer_scope(const Def* lam) { return curr_mut()->free_vars().has_intersection(lam->free_vars()); }
+#endif
 
     const Def* eta_wrap(const Def* def, attr a) {
         auto& w                = world();

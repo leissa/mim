@@ -88,6 +88,7 @@ install(
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
+add_subdirectory(bench)
 add_subdirectory(cli)
 add_subdirectory(plug)
 

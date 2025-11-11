@@ -22,7 +22,8 @@ MimirCodeGen::MimirCodeGen()
     : driver_()
     , world_(driver_.world())
     , jit_lib_(nullptr, mim::dl::close) {
-    world_.log().set(&std::cerr);
+    driver_.log().set(&std::cerr);
+    driver_.log().set(Log::Level::Info);
     mim::ast::load_plugins(world_, {"compile", "mem", "core", "opt", "regex", "direct"});
 }
 

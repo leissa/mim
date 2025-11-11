@@ -8,23 +8,22 @@
 
 #include <mim/plug/core/core.h>
 
+using namespace std::string_literals;
+
 static inline uint64_t rdtsc() {
     uint32_t lo, hi;
     __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
     return ((uint64_t)hi << 32) | lo;
 }
 
-std::ofstream fvs__cascade0;
-std::ofstream nest_cascade0;
-std::ofstream beta_cascade0;
+enum {
+    File_FVs,
+    File_Nest,
+    File_Beta,
+    File_Num,
+};
 
-std::ofstream fvs__cascade1;
-std::ofstream nest_cascade1;
-std::ofstream beta_cascade1;
-
-std::ofstream fvs__nest;
-std::ofstream nest_nest;
-std::ofstream beta_nest;
+std::ofstream ofs[File_Num];
 
 namespace mim::bench {
 using namespace mim::plug;
@@ -69,10 +68,7 @@ void cascade(int n, bool combine) {
 
     prev->app(false, ret, in);
 
-    auto& fvs__cascade = combine ? fvs__cascade1 : fvs__cascade0;
-    auto& nest_cascade = combine ? nest_cascade1 : nest_cascade0;
-    auto& beta_cascade = combine ? beta_cascade1 : beta_cascade0;
-
+#if 0
     // prev->invalidate();
 
     {
@@ -91,14 +87,14 @@ void cascade(int n, bool combine) {
             }
         }
     }
+#endif
 
-    // std::cout << "free_vars" << std::endl;
     {
         auto t1 = rdtsc();
         top->free_vars();
         auto t2     = rdtsc();
         auto cycles = t2 - t1;
-        fvs__cascade << n << " " << cycles << std::endl;
+        ofs[File_FVs] << n << " " << cycles << std::endl;
     }
 
     // std::cout << "nest" << std::endl;
@@ -107,7 +103,7 @@ void cascade(int n, bool combine) {
         auto nest   = Nest(top);
         auto t2     = rdtsc();
         auto cycles = t2 - t1;
-        nest_cascade << n << " " << cycles << std::endl;
+        ofs[File_Nest] << n << " " << cycles << std::endl;
     }
 
     // std::cout << "beta" << std::endl;
@@ -117,7 +113,7 @@ void cascade(int n, bool combine) {
         auto _      = top->reduce(dummy);
         auto t2     = rdtsc();
         auto cycles = t2 - t1;
-        beta_cascade << n << " " << cycles << std::endl;
+        ofs[File_Beta] << n << " " << cycles << std::endl;
     }
     // std::cout << "done" << std::endl;
 }
@@ -146,34 +142,40 @@ std::pair<Lam*, const Def*> build_nest(int i, World& w, Lam* prev, const Def* in
 
 } // namespace mim::bench
 
-int main() {
-    fvs__cascade0.open("fvs__cascade0.data");
-    nest_cascade0.open("nest_cascade0.data");
-    beta_cascade0.open("beta_cascade0.data");
+int main(int argc, const char** argv) {
+    auto names = std::array{"fvs"s, "nest"s, "beta"s};
 
-    fvs__cascade1.open("fvs__cascade1.data");
-    nest_cascade1.open("nest_cascade1.data");
-    beta_cascade1.open("beta_cascade1.data");
+    if (argc != 2) {
+        std::cerr << "usage: " << argv[0] << " 0|1|2" << std::endl;
+        return EXIT_FAILURE;
+    }
 
-    fvs__nest.open("fvs__nest.data");
-    nest_nest.open("nest_nest.data");
-    beta_nest.open("beta_nest.data");
+    char test;
+    if (strcmp(argv[1], "0")) {
+        test = '0';
+    } else if (strcmp(argv[1], "1")) {
+        test = '1';
+    } else if (strcmp(argv[1], "2")) {
+        test = '2';
+    } else {
+        std::cerr << "usage: " << argv[0] << " 0|1|2" << std::endl;
+        return EXIT_FAILURE;
+    }
 
-    fvs__cascade0 << "% n cycles" << std::endl;
-    nest_cascade0 << "% n cycles" << std::endl;
-    beta_cascade0 << "% n cycles" << std::endl;
+    for (int i = 0; i != File_Num; ++i) {
+        auto& name = names[i];
+#ifdef MIM_IMMER
+        name += ".immer";
+#endif
+        name += "."s + test + ".data";
+        ofs[i].open(name);
+        ofs[i] << "% n cycles" << std::endl;
+    }
 
-    fvs__cascade1 << "% n cycles" << std::endl;
-    nest_cascade1 << "% n cycles" << std::endl;
-    beta_cascade1 << "% n cycles" << std::endl;
-
-    fvs__nest << "% n cycles" << std::endl;
-    nest_nest << "% n cycles" << std::endl;
-    beta_nest << "% n cycles" << std::endl;
-
-    for (int i = 1; i <= (1 << 20); i <<= 1)
-        mim::bench::cascade(i, false);
-
-    for (int i = 1; i <= (1 << 19); i <<= 1)
-        mim::bench::cascade(i, true);
+    for (int i = 1; i <= (1 << 20); i <<= 1) {
+        switch (test) {
+            case '0': mim::bench::cascade(i, false); break;
+            case '1': mim::bench::cascade(i, true); break;
+        }
+    }
 }

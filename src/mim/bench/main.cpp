@@ -193,9 +193,9 @@ int main(int argc, const char** argv) {
 #ifdef MIM_IMMER
         name += ".immer";
 #endif
-        name += "."s + test + ".data";
-
+        name += "."s + test;
         if (argc == 3) name += "."s + argv[2]; // suffix
+        name += ".data";
 
         ofs[i].open(name);
         ofs[i] << "% n cycles" << std::endl;

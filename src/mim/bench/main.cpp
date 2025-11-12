@@ -1,6 +1,5 @@
+#include <chrono>
 #include <cstdlib>
-
-#include <sstream>
 
 #include <mim/driver.h>
 #include <mim/nest.h>
@@ -12,11 +11,11 @@
 
 using namespace std::string_literals;
 
-static inline uint64_t rdtsc() {
-    uint32_t lo, hi;
-    __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
-    return ((uint64_t)hi << 32) | lo;
-}
+// static inline uint64_t rdtsc() {
+//     uint32_t lo, hi;
+//     __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
+//     return ((uint64_t)hi << 32) | lo;
+// }
 
 enum {
     File_FVs,
@@ -50,33 +49,33 @@ using namespace mim::plug;
 #endif
 
 void do_bench(std::ofstream* os, int n, World& w, Lam* top) {
-    std::cout << "n/world size: " << n << "/" << w.size() << " = " << float(w.size())/float(n) << std::endl;
+    std::cout << "n/world size: " << n << "/" << w.size() << " = " << float(w.size()) / float(n) << std::endl;
     std::cout << "free vars" << std::endl;
     {
-        auto t1 = rdtsc();
+        auto t1 = std::chrono::steady_clock::now();
         top->free_vars();
-        auto t2     = rdtsc();
-        auto cycles = t2 - t1;
-        os[File_FVs] << n << " " << cycles << std::endl;
+        auto t2 = std::chrono::steady_clock::now();
+        auto ms = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+        os[File_FVs] << n << " " << ms << std::endl;
     }
 
     std::cout << "nest" << std::endl;
     {
-        auto t1     = rdtsc();
-        auto nest   = Nest(top);
-        auto t2     = rdtsc();
-        auto cycles = t2 - t1;
-        os[File_Nest] << n << " " << cycles << std::endl;
+        auto t1   = std::chrono::steady_clock::now();
+        auto nest = Nest(top);
+        auto t2   = std::chrono::steady_clock::now();
+        auto ms   = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+        os[File_Nest] << n << " " << ms << std::endl;
     }
 
     std::cout << "beta" << std::endl;
     {
-        auto dummy  = w.axm(top->type()->dom());
-        auto t1     = rdtsc();
-        auto _      = top->reduce(dummy);
-        auto t2     = rdtsc();
-        auto cycles = t2 - t1;
-        os[File_Beta] << n << " " << cycles << std::endl;
+        auto dummy = w.axm(top->type()->dom());
+        auto t1    = std::chrono::steady_clock::now();
+        auto _     = top->reduce(dummy);
+        auto t2    = std::chrono::steady_clock::now();
+        auto ms    = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+        os[File_Beta] << n << " " << ms << std::endl;
     }
     std::cout << "done" << std::endl;
 }
@@ -198,7 +197,7 @@ int main(int argc, const char** argv) {
         name += ".data";
 
         ofs[i].open(name);
-        ofs[i] << "% n cycles" << std::endl;
+        ofs[i] << "% n ms" << std::endl;
     }
 
     for (int i = 1; i <= (1 << 20); i <<= 1) {

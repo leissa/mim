@@ -1,3 +1,5 @@
+#include <cstdlib>
+
 #include <sstream>
 
 #include <mim/driver.h>
@@ -23,8 +25,6 @@ enum {
     File_Num,
 };
 
-std::ofstream ofs[File_Num];
-
 namespace mim::bench {
 using namespace mim::plug;
 
@@ -49,7 +49,7 @@ std::pair<Lam*, const Def*> build_loop(World& w, Lam* prev, const Def* in) {
     return {exit, phi};
 }
 
-void cascade(int n, bool combine) {
+void cascade(std::ofstream* os, int n, bool combine) {
     std::cout << n << std::endl;
     Driver driver;
     auto& w = driver.world();
@@ -94,7 +94,7 @@ void cascade(int n, bool combine) {
         top->free_vars();
         auto t2     = rdtsc();
         auto cycles = t2 - t1;
-        ofs[File_FVs] << n << " " << cycles << std::endl;
+        os[File_FVs] << n << " " << cycles << std::endl;
     }
 
     // std::cout << "nest" << std::endl;
@@ -103,7 +103,7 @@ void cascade(int n, bool combine) {
         auto nest   = Nest(top);
         auto t2     = rdtsc();
         auto cycles = t2 - t1;
-        ofs[File_Nest] << n << " " << cycles << std::endl;
+        os[File_Nest] << n << " " << cycles << std::endl;
     }
 
     // std::cout << "beta" << std::endl;
@@ -113,7 +113,7 @@ void cascade(int n, bool combine) {
         auto _      = top->reduce(dummy);
         auto t2     = rdtsc();
         auto cycles = t2 - t1;
-        ofs[File_Beta] << n << " " << cycles << std::endl;
+        os[File_Beta] << n << " " << cycles << std::endl;
     }
     // std::cout << "done" << std::endl;
 }
@@ -143,19 +143,20 @@ std::pair<Lam*, const Def*> build_nest(int i, World& w, Lam* prev, const Def* in
 } // namespace mim::bench
 
 int main(int argc, const char** argv) {
-    auto names = std::array{"fvs"s, "nest"s, "beta"s};
+    std::ofstream ofs[File_Num];
+    auto names = std::array<std::string, File_Num>{"fvs"s, "nest"s, "beta"s};
 
-    if (argc != 2) {
-        std::cerr << "usage: " << argv[0] << " 0|1|2" << std::endl;
+    if (argc != 2 && argc != 3) {
+        std::cerr << "usage: " << argv[0] << " 0|1|2 [suffix]" << std::endl;
         return EXIT_FAILURE;
     }
 
     char test;
-    if (strcmp(argv[1], "0")) {
+    if (strcmp(argv[1], "0") == 0) {
         test = '0';
-    } else if (strcmp(argv[1], "1")) {
+    } else if (strcmp(argv[1], "1") == 0) {
         test = '1';
-    } else if (strcmp(argv[1], "2")) {
+    } else if (strcmp(argv[1], "2") == 0) {
         test = '2';
     } else {
         std::cerr << "usage: " << argv[0] << " 0|1|2" << std::endl;
@@ -168,14 +169,18 @@ int main(int argc, const char** argv) {
         name += ".immer";
 #endif
         name += "."s + test + ".data";
+
+        if (argc == 3) name += "."s + argv[2]; // suffix
+
         ofs[i].open(name);
         ofs[i] << "% n cycles" << std::endl;
     }
 
     for (int i = 1; i <= (1 << 20); i <<= 1) {
         switch (test) {
-            case '0': mim::bench::cascade(i, false); break;
-            case '1': mim::bench::cascade(i, true); break;
+            case '0': mim::bench::cascade(ofs, i, false); break;
+            case '1': mim::bench::cascade(ofs, i, true); break;
+            default: std::cerr << "unknown test" << std::endl; return EXIT_FAILURE;
         }
     }
 }

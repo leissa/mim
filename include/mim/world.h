@@ -89,6 +89,7 @@ public:
     Zonker& zonker() { return zonker_; }
 
     Sym name() const { return state_.pod.name; }
+    size_t size() const { return move_.defs.size(); }
     void set(Sym name) { state_.pod.name = name; }
     void set(std::string_view name) { state_.pod.name = sym(name); }
 

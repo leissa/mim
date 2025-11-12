@@ -28,6 +28,59 @@ enum {
 namespace mim::bench {
 using namespace mim::plug;
 
+#if 0
+    // prev->invalidate();
+
+    {
+        // validate that all free var caches are empty
+        unique_queue<LamSet> q;
+        q.push(top);
+
+        while (!q.empty()) {
+            auto mut = q.pop();
+            if (!mut->is_set()) continue;
+            if (!mut->is_cache_empty()) std::cout << "oh no!" << std::endl;
+
+            for (auto op : mut->ops()) {
+                for (auto local_mut : op->local_muts())
+                    if (auto lam = local_mut->isa<Lam>()) q.push(lam);
+            }
+        }
+    }
+#endif
+
+void do_bench(std::ofstream* os, int n, World& w, Lam* top) {
+    std::cout << "n/world size: " << n << "/" << w.size() << " = " << float(w.size())/float(n) << std::endl;
+    std::cout << "free vars" << std::endl;
+    {
+        auto t1 = rdtsc();
+        top->free_vars();
+        auto t2     = rdtsc();
+        auto cycles = t2 - t1;
+        os[File_FVs] << n << " " << cycles << std::endl;
+    }
+
+    std::cout << "nest" << std::endl;
+    {
+        auto t1     = rdtsc();
+        auto nest   = Nest(top);
+        auto t2     = rdtsc();
+        auto cycles = t2 - t1;
+        os[File_Nest] << n << " " << cycles << std::endl;
+    }
+
+    std::cout << "beta" << std::endl;
+    {
+        auto dummy  = w.axm(top->type()->dom());
+        auto t1     = rdtsc();
+        auto _      = top->reduce(dummy);
+        auto t2     = rdtsc();
+        auto cycles = t2 - t1;
+        os[File_Beta] << n << " " << cycles << std::endl;
+    }
+    std::cout << "done" << std::endl;
+}
+
 std::pair<Lam*, const Def*> build_loop(World& w, Lam* prev, const Def* in) {
     auto I64  = w.type_i64();
     auto zero = w.lit_i64(0);
@@ -50,7 +103,6 @@ std::pair<Lam*, const Def*> build_loop(World& w, Lam* prev, const Def* in) {
 }
 
 void cascade(std::ofstream* os, int n, bool combine) {
-    std::cout << n << std::endl;
     Driver driver;
     auto& w = driver.world();
     ast::load_plugins(w, "core");
@@ -68,54 +120,7 @@ void cascade(std::ofstream* os, int n, bool combine) {
 
     prev->app(false, ret, in);
 
-#if 0
-    // prev->invalidate();
-
-    {
-        // validate that all free var caches are empty
-        unique_queue<LamSet> q;
-        q.push(top);
-
-        while (!q.empty()) {
-            auto mut = q.pop();
-            if (!mut->is_set()) continue;
-            if (!mut->is_cache_empty()) std::cout << "oh no!" << std::endl;
-
-            for (auto op : mut->ops()) {
-                for (auto local_mut : op->local_muts())
-                    if (auto lam = local_mut->isa<Lam>()) q.push(lam);
-            }
-        }
-    }
-#endif
-
-    {
-        auto t1 = rdtsc();
-        top->free_vars();
-        auto t2     = rdtsc();
-        auto cycles = t2 - t1;
-        os[File_FVs] << n << " " << cycles << std::endl;
-    }
-
-    // std::cout << "nest" << std::endl;
-    {
-        auto t1     = rdtsc();
-        auto nest   = Nest(top);
-        auto t2     = rdtsc();
-        auto cycles = t2 - t1;
-        os[File_Nest] << n << " " << cycles << std::endl;
-    }
-
-    // std::cout << "beta" << std::endl;
-    {
-        auto dummy  = w.axm(top->type()->dom());
-        auto t1     = rdtsc();
-        auto _      = top->reduce(dummy);
-        auto t2     = rdtsc();
-        auto cycles = t2 - t1;
-        os[File_Beta] << n << " " << cycles << std::endl;
-    }
-    // std::cout << "done" << std::endl;
+    do_bench(os, n, w, top);
 }
 
 std::pair<Lam*, const Def*> build_nest(int i, World& w, Lam* prev, const Def* in) {
@@ -134,10 +139,30 @@ std::pair<Lam*, const Def*> build_nest(int i, World& w, Lam* prev, const Def* in
     head->branch(false, cond, body, exit);
 
     auto add = w.call(core::wrap::add, 0_n, Defs{phi, one});
-    // auto sadf = body->app(false, head, add);
-    // auto [x, y] = build_nest(i - 1, w, x, y);
+    if (i == 0) {
+        body->app(false, head, add);
+    } else {
+        auto [next, _] = build_nest(i - 1, w, body, phi);
+        next->app(false, head, add);
+    }
 
     return {exit, phi};
+}
+
+void loop_nest(std::ofstream* os, int n) {
+    Driver driver;
+    auto& w = driver.world();
+    ast::load_plugins(w, "core");
+
+    auto ti64      = w.type_i64();
+    auto top       = w.mut_fun(ti64, ti64);
+    auto prev      = top;
+    auto [in, ret] = prev->vars<2>();
+
+    auto [exit, phi] = build_nest(n, w, top, in);
+    exit->app(false, ret, phi);
+
+    do_bench(os, n, w, top);
 }
 
 } // namespace mim::bench
@@ -180,6 +205,7 @@ int main(int argc, const char** argv) {
         switch (test) {
             case '0': mim::bench::cascade(ofs, i, false); break;
             case '1': mim::bench::cascade(ofs, i, true); break;
+            case '2': mim::bench::loop_nest(ofs, i); break;
             default: std::cerr << "unknown test" << std::endl; return EXIT_FAILURE;
         }
     }

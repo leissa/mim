@@ -314,7 +314,7 @@ TEST(FV, fixed_point) {
     auto fvt = t->free_vars();
     auto fvf = f->free_vars();
 
-#if MIM_IMMER
+#ifdef MIM_IMMER
     auto vt_vf      = Vars({vt, vf});
     auto cond_vt    = Vars({vt, cond});
     auto cond_vt_vf = vt_vf.insert(cond);

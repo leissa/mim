@@ -2,6 +2,7 @@
 
 #cmakedefine MIM_ENABLE_CHECKS
 #cmakedefine MIM_IMMER
+#cmakedefine MIM_STD_SET
 
 #define MIM_VER  "@PROJECT_VERSION@"
 #define MIM_VER_MAJOR "@PROJECT_VERSION_MAJOR@"

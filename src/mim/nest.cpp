@@ -76,6 +76,8 @@ Nest::Node* Nest::make_node(Def* mut, Node* parent) {
     if (mut) {
 #ifdef MIM_IMMER
         if (auto var = mut->has_var()) vars_ = vars_.insert(var);
+#elif defined(MIM_STD_SET)
+        if (auto var = mut->has_var()) vars_.emplace(var);
 #else
         if (auto var = mut->has_var()) vars_ = world().vars().insert(vars_, var);
 #endif

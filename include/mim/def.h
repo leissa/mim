@@ -17,6 +17,8 @@
 #ifdef MIM_IMMER
 #    include <immer/set.hpp>
 #    include <immer/set_transient.hpp>
+#elif defined(MIM_STD_SET)
+#    include <set>
 #endif
 
 // clang-format off
@@ -101,6 +103,8 @@ using MutSet  = GIDSet<Def*>;
 using Mut2Mut = MutMap<Def*>;
 #ifdef MIM_IMMER
 using Muts = immer::set<Def*, GIDHash<Def*>, std::equal_to<Def*>>;
+#elif defined(MIM_STD_SET)
+using Muts = std::set<Def*, GIDLt<Def*>>;
 #else
 using Muts = Sets<Def>::Set;
 #endif
@@ -115,6 +119,8 @@ using VarSet  = GIDSet<const Var*>;
 using Var2Var = VarMap<const Var*>;
 #ifdef MIM_IMMER
 using Vars = immer::set<const Var*, GIDHash<const Var*>, std::equal_to<const Var*>>;
+#elif defined(MIM_STD_SET)
+using Vars = std::set<const Var*, GIDLt<const Var*>>;
 #else
 using Vars = Sets<const Var>::Set;
 #endif

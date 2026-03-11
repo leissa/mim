@@ -28,6 +28,11 @@ option(BUILD_SHARED_LIBS    "Build shared libraries." ON)
 option(MIM_BUILD_DOCS       "If ON, build the documentation (requires Doxygen)." OFF)
 option(MIM_BUILD_EXAMPLES   "If ON, build examples." OFF)
 option(MIM_IMMER            "If ON, use immer instead of mim's indexed trie." OFF)
+option(MIM_STD_SET          "If ON, use std::set instead of mim's indexed trie." OFF)
+
+if(MIM_IMMER AND MIM_STD_SET)
+    message(FATAL_ERROR "MIM_IMMER and MIM_STD_SET cannot both be ON. Please enable only one.")
+endif()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}; shared libs: ${BUILD_SHARED_LIBS}")
 

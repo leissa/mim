@@ -30,7 +30,7 @@ public:
         return scope(lam) && scope(lam) != scope(curr_mut());
     }
 
-#ifdef MIM_IMMER
+#if defined (MIM_IMMER) || defined(MIM_STD_SET)
     bool from_outer_scope(const Def* lam) { return intersects(curr_mut()->free_vars(), lam->free_vars()); }
 #else
     bool from_outer_scope(const Def* lam) { return curr_mut()->free_vars().has_intersection(lam->free_vars()); }

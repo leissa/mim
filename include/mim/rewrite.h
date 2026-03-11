@@ -121,7 +121,7 @@ public:
     // Add initial mapping from @pvar -> @p arg.
     VarRewriter& add(const Var* var, const Def* arg) {
         map(var, arg);
-#ifdef MIM_IMMER
+#if defined(MIM_IMMER) || defined(MIM_STD_SET)
         vars_.emplace_back(Vars({var}));
 #else
         vars_.emplace_back(var);
@@ -151,7 +151,7 @@ public:
 private:
     bool has_intersection(const Def* old_def) {
         for (const auto& vars : vars_ | std::views::reverse)
-#ifdef MIM_IMMER
+#if defined(MIM_IMMER) || defined(MIM_STD_SET)
             if (intersects(vars, old_def->free_vars())) return true;
 #else
             if (vars.has_intersection(old_def->free_vars())) return true;

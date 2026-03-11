@@ -191,6 +191,10 @@ int main(int argc, const char** argv) {
         auto& name = names[i];
 #ifdef MIM_IMMER
         name += ".immer";
+#elif defined(MIM_STD_SET)
+        name += ".set";
+#else
+        name += ".trie";
 #endif
         name += "."s + test;
         if (argc == 3) name += "."s + argv[2]; // suffix

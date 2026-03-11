@@ -275,7 +275,7 @@ TEST(FV, free_vars) {
     auto x   = lx->var()->set("x")->as<Var>();
     auto y   = ly->var()->set("y")->as<Var>();
     lx->set(false, w.tuple({x, y}));
-#ifdef MIM_IMMER
+#if defined(MIM_IMMER) || defined(MIM_STD_SET)
     EXPECT_EQ(lx->free_vars(), Vars({y}));
 #else
     EXPECT_EQ(lx->free_vars(), Vars(y));
@@ -314,10 +314,15 @@ TEST(FV, fixed_point) {
     auto fvt = t->free_vars();
     auto fvf = f->free_vars();
 
-#ifdef MIM_IMMER
+#if MIM_IMMER
     auto vt_vf      = Vars({vt, vf});
     auto cond_vt    = Vars({vt, cond});
     auto cond_vt_vf = vt_vf.insert(cond);
+#elif defined(MIM_STD_SET)
+    auto vt_vf      = Vars({vt, vf});
+    auto cond_vt    = Vars({vt, cond});
+    auto cond_vt_vf = vt_vf;
+    cond_vt_vf.emplace(cond);
 #else
     auto vt_vf      = w.vars().create({vt, vf});
     auto cond_vt    = w.vars().create({vt, cond});
@@ -326,7 +331,7 @@ TEST(FV, fixed_point) {
 
     EXPECT_EQ(fva, vt_vf);
     EXPECT_EQ(fvb, cond_vt_vf);
-#ifdef MIM_IMMER
+#if defined(MIM_IMMER) || defined(MIM_STD_SET)
     EXPECT_EQ(fvt, Vars({vt}));
     EXPECT_EQ(fvf, Vars({vf}));
 #else
@@ -354,7 +359,7 @@ TEST(FV, fixed_point) {
     fvt = t->free_vars();
     fvf = f->free_vars();
 
-#ifdef MIM_IMMER
+#if defined(MIM_IMMER) || defined(MIM_STD_SET)
     EXPECT_EQ(fva, Vars({vt}));
     EXPECT_EQ(fvt, Vars({vt}));
 #else

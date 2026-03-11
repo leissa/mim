@@ -194,6 +194,8 @@ const Def* VarRewriter::rewrite_mut(Def* mut) {
         auto& vars = vars_.back();
 #ifdef MIM_IMMER
         vars = vars.insert(var);
+#elif defined(MIM_STD_SET)
+        vars.emplace(var);
 #else
         vars = world().vars().insert(vars, var);
 #endif

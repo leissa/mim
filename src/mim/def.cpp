@@ -41,7 +41,7 @@ Def::Def(World* world, Node node, const Def* type, Defs ops, flags_t flags)
         auto mut    = ops[0];
         auto& world = mut->world();
         gid_        = world.next_gid();
-#ifdef MIM_IMMER
+#if defined(MIM_IMMER) || defined(MIM_STD_SET)
         vars_ = Vars({var});
 #else
         vars_ = Vars(var);
@@ -63,6 +63,9 @@ Def::Def(World* world, Node node, const Def* type, Defs ops, flags_t flags)
 #ifdef MIM_IMMER
             tvars = type->local_vars().transient();
             tmuts = type->local_muts().transient();
+#elif defined(MIM_STD_SET)
+            vars_ = type->local_vars();
+            muts_ = type->local_muts();
 #else
             vars_ = type->local_vars();
             muts_ = type->local_muts();
@@ -72,7 +75,7 @@ Def::Def(World* world, Node node, const Def* type, Defs ops, flags_t flags)
             world = &ops[0]->world();
         }
 
-#ifndef MIM_IMMER
+#if !(defined(MIM_IMMER) || defined(MIM_STD_SET))
         auto vars = &world->vars();
         auto muts = &world->muts();
 #endif
@@ -86,6 +89,9 @@ Def::Def(World* world, Node node, const Def* type, Defs ops, flags_t flags)
 #ifdef MIM_IMMER
             for (auto var : op->local_vars()) tvars.insert(var);
             for (auto mut : op->local_muts()) tmuts.insert(mut);
+#elif defined(MIM_STD_SET)
+            for (auto var : op->local_vars()) vars_.insert(var);
+            for (auto mut : op->local_muts()) muts_.insert(mut);
 #else
             vars_ = vars->merge(vars_, op->local_vars());
             muts_ = muts->merge(muts_, op->local_muts());
@@ -357,7 +363,7 @@ const Def* Def::var_type() {
 
 Muts Def::local_muts() const {
     if (auto mut = isa_mut())
-#ifdef MIM_IMMER
+#if defined(MIM_IMMER) || defined(MIM_STD_SET)
         return Muts({mut});
 #else
         return Muts(mut);
@@ -374,6 +380,12 @@ Vars Def::free_vars() const {
         for (auto var : mut->free_vars())
             fvs.insert(var);
     return fvs.persistent();
+#elif defined(MIM_STD_SET)
+    auto fvs   = local_vars();
+    for (auto mut : local_muts())
+        for (auto var : mut->free_vars())
+            fvs.insert(var);
+    return fvs;
 #else
     auto& vars = world().vars();
     auto fvs   = local_vars();
@@ -442,6 +454,25 @@ Vars Def::free_vars(bool& todo, uint32_t run) {
     vars_ = fvs.persistent();
     if constexpr (!init) todo |= fvs0 != vars_;
     return vars_;
+#elif defined(MIM_STD_SET)
+    auto fvs = fvs0;
+
+    for (auto op : deps()) {
+        if constexpr (init)
+            for (auto var : op->local_vars())
+                fvs.insert(var);
+
+        for (auto mut : op->local_muts()) {
+            if constexpr (init) mut->muts_.emplace(this); // register "this" as user of local_mut
+            for (auto var : mut->free_vars<init>(todo, run))
+                fvs.insert(var);
+        }
+    }
+
+    if (auto var = has_var()) fvs.erase(var); // FV(λx.e) = FV(e) \ {x}
+
+    if constexpr (!init) todo |= fvs0 != fvs;
+    return vars_ = fvs;
 #else
     auto& w    = world();
     auto fvs   = fvs0;

@@ -104,7 +104,7 @@ public:
         absl::flat_hash_set<Node*> depends_;
         absl::flat_hash_set<Node*> controls_;
         std::deque<std::unique_ptr<SCC>> topo_;
-        absl::node_hash_map<const Node*, const SCC*> SCCs_;
+        absl::flat_hash_map<const Node*, const SCC*> SCCs_;
 
         // implementaiton details
         static constexpr uint32_t Unvisited = uint32_t(-1);
@@ -128,7 +128,7 @@ public:
     World& world() const { return world_; }
     const Node* root() const { return root_; }
     Vars vars() const { return vars_; } ///< All Var%s occurring in this Nest.
-#ifdef MIM_IMMER
+#if defined(MIM_IMMER) || defined(MIM_STD_SET)
     bool contains(const Def* def) const { return intersects(vars(), def->free_vars()); }
 #else
     bool contains(const Def* def) const { return vars().has_intersection(def->free_vars()); }

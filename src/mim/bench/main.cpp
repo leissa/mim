@@ -11,12 +11,6 @@
 
 using namespace std::string_literals;
 
-// static inline uint64_t rdtsc() {
-//     uint32_t lo, hi;
-//     __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
-//     return ((uint64_t)hi << 32) | lo;
-// }
-
 enum {
     File_FVs,
     File_Nest,
@@ -27,28 +21,7 @@ enum {
 namespace mim::bench {
 using namespace mim::plug;
 
-#if 0
-    // prev->invalidate();
-
-    {
-        // validate that all free var caches are empty
-        unique_queue<LamSet> q;
-        q.push(top);
-
-        while (!q.empty()) {
-            auto mut = q.pop();
-            if (!mut->is_set()) continue;
-            if (!mut->is_cache_empty()) std::cout << "oh no!" << std::endl;
-
-            for (auto op : mut->ops()) {
-                for (auto local_mut : op->local_muts())
-                    if (auto lam = local_mut->isa<Lam>()) q.push(lam);
-            }
-        }
-    }
-#endif
-
-void do_bench(std::ofstream* os, int n, World& w, Lam* top) {
+void do_bench(std::ofstream* os, int test, int n, World& w, Lam* top) {
     std::cout << "n/world size: " << n << "/" << w.size() << " = " << float(w.size()) / float(n) << std::endl;
     std::cout << "free vars" << std::endl;
     {
@@ -77,6 +50,19 @@ void do_bench(std::ofstream* os, int n, World& w, Lam* top) {
         auto ms    = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
         os[File_Beta] << n << " " << ms << std::endl;
     }
+
+    {
+        auto ll = std::to_string(test) + "."s + std::to_string(n) + ".ll"s;
+        auto path = fs::path{ll};
+        if (fs::exists(path))
+            std::cout << ll << " already exists" << std::endl;
+        else {
+            std::cout << "emit " << ll << std::endl;
+            auto of = std::ofstream(ll);
+            w.driver().backend("ll")(w, of);
+        }
+    }
+
     std::cout << "done" << std::endl;
 }
 
@@ -104,13 +90,15 @@ std::pair<Lam*, const Def*> build_loop(World& w, Lam* prev, const Def* in) {
 void cascade(std::ofstream* os, int n, bool combine) {
     Driver driver;
     auto& w = driver.world();
-    ast::load_plugins(w, "core");
+    ast::load_plugins(w, View<std::string>{"compile", "core"});
 
     auto ti64      = w.type_i64();
-    auto top       = w.mut_fun(ti64, ti64);
+    auto top       = w.mut_fun(ti64, ti64)->set("top");
     auto prev      = top;
     auto [in, ret] = prev->vars<2>();
     auto res       = in;
+
+    top->make_external();
 
     for (int i = 0; i != n; ++i) {
         std::tie(prev, in) = build_loop(w, prev, in);
@@ -119,7 +107,7 @@ void cascade(std::ofstream* os, int n, bool combine) {
 
     prev->app(false, ret, in);
 
-    do_bench(os, n, w, top);
+    do_bench(os, combine ? 1 : 0, n, w, top);
 }
 
 std::pair<Lam*, const Def*> build_nest(int i, World& w, Lam* prev, const Def* in) {
@@ -151,61 +139,64 @@ std::pair<Lam*, const Def*> build_nest(int i, World& w, Lam* prev, const Def* in
 void loop_nest(std::ofstream* os, int n) {
     Driver driver;
     auto& w = driver.world();
-    ast::load_plugins(w, "core");
+    ast::load_plugins(w, View<std::string>{"compile", "core"});
 
-    auto ti64      = w.type_i64();
-    auto top       = w.mut_fun(ti64, ti64);
-    auto prev      = top;
-    auto [in, ret] = prev->vars<2>();
-
+    auto ti64        = w.type_i64();
+    auto top         = w.mut_fun(ti64, ti64)->set("top");
+    auto prev        = top;
+    auto [in, ret]   = prev->vars<2>();
     auto [exit, phi] = build_nest(n, w, top, in);
-    exit->app(false, ret, phi);
 
-    do_bench(os, n, w, top);
+    exit->app(false, ret, phi);
+    top->make_external();
+
+    do_bench(os, 2, n, w, top);
 }
 
 } // namespace mim::bench
 
 int main(int argc, const char** argv) {
     std::ofstream ofs[File_Num];
-    auto names = std::array<std::string, File_Num>{"fvs"s, "nest"s, "beta"s};
+    auto algos = std::array<std::string, File_Num>{"fvs."s, "nest."s, "beta."s};
+
+    auto usage = [argv] { std::cerr << "usage: " << argv[0] << " 0|1|2 [suffix]" << std::endl; };
 
     if (argc != 2 && argc != 3) {
-        std::cerr << "usage: " << argv[0] << " 0|1|2 [suffix]" << std::endl;
+        usage();
         return EXIT_FAILURE;
     }
 
-    char test;
-    if (strcmp(argv[1], "0") == 0) {
-        test = '0';
-    } else if (strcmp(argv[1], "1") == 0) {
-        test = '1';
-    } else if (strcmp(argv[1], "2") == 0) {
-        test = '2';
-    } else {
-        std::cerr << "usage: " << argv[0] << " 0|1|2" << std::endl;
+    char row;
+    if (false) {}
+    else if (strcmp(argv[1], "0") == 0) row = '0';
+    else if (strcmp(argv[1], "1") == 0) row = '1';
+    else if (strcmp(argv[1], "2") == 0) row = '2';
+    else {
+        usage();
         return EXIT_FAILURE;
     }
+
+    std::string suffix;
+    if (argc == 3) suffix = argv[2];
 
     for (int i = 0; i != File_Num; ++i) {
-        auto& name = names[i];
 #ifdef MIM_IMMER
-        name += ".immer";
+        auto name = "immer."s;
 #elif defined(MIM_STD_SET)
-        name += ".set";
+        auto name = "set."s;
 #else
-        name += ".trie";
+        auto name = "trie."s;
 #endif
-        name += "."s + test;
-        if (argc == 3) name += "."s + argv[2]; // suffix
-        name += ".data";
+        name += algos[i];
+        name += row + "."s;
+        name += suffix;
 
         ofs[i].open(name);
         ofs[i] << "% n ms" << std::endl;
     }
 
-    for (int i = 1; i <= (1 << 20); i <<= 1) {
-        switch (test) {
+    for (int i = 1; i <= (1 << 6); i <<= 1) {
+        switch (row) {
             case '0': mim::bench::cascade(ofs, i, false); break;
             case '1': mim::bench::cascade(ofs, i, true); break;
             case '2': mim::bench::loop_nest(ofs, i); break;

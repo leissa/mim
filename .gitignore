@@ -1,3 +1,6 @@
+*.run*
+*.warmup*
+*.merged
 *.bc
 *.cl
 *.cu

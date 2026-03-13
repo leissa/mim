@@ -58,8 +58,8 @@ def merge_results():
         all_cycles = np.stack([df["cycles"].to_numpy() for df in dfs], axis=1)
 
         merged["median"] = np.median(all_cycles, axis=1).astype(int)
-        merged["max"] = np.max(all_cycles, axis=1).astype(int)
-        merged["min"] = np.min(all_cycles, axis=1).astype(int)
+        merged["max"]    = np.max   (all_cycles, axis=1).astype(int)
+        merged["min"]    = np.min   (all_cycles, axis=1).astype(int)
 
         out_file = f"{prefix}.merged"
         merged.to_csv(out_file, sep=" ", index=False, header=["n", "median", "max", "min"])

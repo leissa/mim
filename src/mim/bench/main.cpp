@@ -158,26 +158,27 @@ void loop_nest(std::ofstream* os, int n) {
 int main(int argc, const char** argv) {
     std::ofstream ofs[File_Num];
     auto algos = std::array<std::string, File_Num>{"fvs."s, "nest."s, "beta."s};
+    auto usage = [argv] { std::cerr << "usage: " << argv[0] << " <iter> 0|1|2 [suffix]" << std::endl; };
 
-    auto usage = [argv] { std::cerr << "usage: " << argv[0] << " 0|1|2 [suffix]" << std::endl; };
-
-    if (argc != 2 && argc != 3) {
+    if (argc != 3 && argc != 4) {
         usage();
         return EXIT_FAILURE;
     }
 
+    int iter = std::stoi(argv[2]);
+
     char row;
     if (false) {}
-    else if (strcmp(argv[1], "0") == 0) row = '0';
-    else if (strcmp(argv[1], "1") == 0) row = '1';
-    else if (strcmp(argv[1], "2") == 0) row = '2';
+    else if (strcmp(argv[2], "0") == 0) row = '0';
+    else if (strcmp(argv[2], "1") == 0) row = '1';
+    else if (strcmp(argv[2], "2") == 0) row = '2';
     else {
         usage();
         return EXIT_FAILURE;
     }
 
     std::string suffix;
-    if (argc == 3) suffix = argv[2];
+    if (argc >= 4) suffix = argv[3];
 
     for (int i = 0; i != File_Num; ++i) {
 #ifdef MIM_IMMER
@@ -195,7 +196,7 @@ int main(int argc, const char** argv) {
         ofs[i] << "% n ms" << std::endl;
     }
 
-    for (int i = 1; i <= (1 << 6); i <<= 1) {
+    for (int i = 1; i <= (1 << iter); i <<= 1) {
         switch (row) {
             case '0': mim::bench::cascade(ofs, i, false); break;
             case '1': mim::bench::cascade(ofs, i, true); break;

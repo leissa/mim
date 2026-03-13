@@ -9,8 +9,7 @@ import numpy as np
 WARMUP_RUNS   = 3
 N_RUNS        = 9
 ALGOS         = ["fvs", "nest", "beta"]
-# SETS          = ["trie", "immer", "set"]
-SETS          = ["immer"]
+SETS          = ["trie", "immer", "set"]
 ROWS          = [0, 1, 2]
 TASKSET_MASK  = "0x1"         # CPU core mask (e.g. 0x1 = core 0)
 
@@ -23,11 +22,12 @@ def run_benchmarks():
     for set in SETS:
         for row in ROWS:
             bench = f"release_{set}/bin/bench"
+            iter = 8
             # --- Warmup runs ---
             print(f"Performing {WARMUP_RUNS} warmup runs (results ignored)...")
             for i in range(1, WARMUP_RUNS + 1):
                 suffix = f"warmup{i}"
-                cmd    = f"taskset {TASKSET_MASK} {bench} {row} {suffix}"
+                cmd    = f"taskset {TASKSET_MASK} {bench} {iter} {row} {suffix}"
                 run_cmd(cmd)
             print("Warmup complete.\n")
 
@@ -35,7 +35,7 @@ def run_benchmarks():
             for i in range(1, N_RUNS + 1):
                 print(f"Running benchmark {i}/{N_RUNS} pinned to core mask {TASKSET_MASK} ...")
                 suffix = f"run{i}"
-                cmd    = f"taskset {TASKSET_MASK} {bench} {row} {suffix}"
+                cmd    = f"taskset {TASKSET_MASK} {bench} {iter} {row} {suffix}"
                 run_cmd(cmd)
 
 def merge_results():

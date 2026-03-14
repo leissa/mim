@@ -103,10 +103,10 @@
 			% ---- Row 1: loop cascade ----
 			\nextgroupplot[title={Free Variables}, ylabel={Loop Cascade}]
 
-			\myplot{ACMPurple}{mark=*}{../trie.fvs.0.merged};
+			\myplot{ACMBlue}{mark=*}{../trie.fvs.0.merged};
             \addlegendentry{Indexed Trie}
 
-			\myplot{ACMBlue}{mark=*}{../set.fvs.0.merged};
+			\myplot{ACMOrange}{mark=square*,densely dotted}{../set.fvs.0.merged};
             \addlegendentry{\texttt{std::set}}
 
 			\myplot{ACMRed}{densely dashed, mark=triangle*}{../immer.fvs.0.merged};
@@ -118,16 +118,16 @@
 
 			\nextgroupplot[title={$\beta$-Reduction}]
 
-			\myplot{ACMPurple}{mark=*}{../trie.beta.0.merged};
-			\myplot{ACMBlue}{mark=*}{../set.beta.0.merged};
+			\myplot{ACMBlue}{mark=*}{../trie.beta.0.merged};
+			\myplot{ACMOrange}{mark=square*,densely dotted}{../set.beta.0.merged};
 			\myplot{ACMRed}{densely dashed,mark=triangle*}{../immer.beta.0.merged};
 
             \addplot [ACMGreen, smooth] {x * ln(x) / ln(2)};
 
 			\nextgroupplot[title={Nesting Tree}]
 
-			\myplot{ACMPurple}{mark=*}{../trie.nest.0.merged};
-			\myplot{ACMBlue}{mark=*}{../set.nest.0.merged};
+			\myplot{ACMBlue}{mark=*}{../trie.nest.0.merged};
+			\myplot{ACMOrange}{mark=square*,densely dotted}{../set.nest.0.merged};
 			\myplot{ACMRed}{densely dashed, mark=triangle*}{../immer.nest.0.merged};
 
             \addplot [ACMGreen, smooth] {x * ln(x) / ln(2)};
@@ -135,24 +135,24 @@
 			% ---- Row 2: loop cascade2 ----
 			\nextgroupplot[ylabel={Acc. Loop Cascade}]
 
-			\myplot{ACMPurple}{mark=*}{../trie.fvs.1.merged};
-			\myplot{ACMBlue}{mark=*}{../set.fvs.1.merged};
+			\myplot{ACMBlue}{mark=*}{../trie.fvs.1.merged};
+			\myplot{ACMOrange}{mark=square*,densely dotted}{../set.fvs.1.merged};
 			\myplot{ACMRed}{densely dashed, mark=triangle*}{../immer.fvs.1.merged};
 
             \addplot [ACMGreen, smooth] {x * ln(x) / ln(2)};
 
 			\nextgroupplot
 
-			\myplot{ACMPurple}{mark=*}{../trie.beta.1.merged};
-			\myplot{ACMBlue}{mark=*}{../set.beta.1.merged};
+			\myplot{ACMBlue}{mark=*}{../trie.beta.1.merged};
+			\myplot{ACMOrange}{mark=square*,densely dotted}{../set.beta.1.merged};
 			\myplot{ACMRed}{densely dashed, mark=triangle*}{../immer.beta.1.merged};
 
             \addplot [ACMGreen, smooth] {x * ln(x) / ln(2)};
 
 			\nextgroupplot
 
-			\myplot{ACMPurple}{mark=*}{../trie.nest.1.merged};
-			\myplot{ACMBlue}{mark=*}{../set.nest.1.merged};
+			\myplot{ACMBlue}{mark=*}{../trie.nest.1.merged};
+			\myplot{ACMOrange}{mark=square*,densely dotted}{../set.nest.1.merged};
 			\myplot{ACMRed}{densely dashed, mark=triangle*}{../immer.nest.1.merged};
 
             \addplot[ACMGreen, smooth] {x * ln(x) / ln(2)};
@@ -160,32 +160,31 @@
 			% ---- Row 3: loop nest ----
 			\nextgroupplot[ylabel={Loop Nest}]
 
-			\myplot{ACMPurple}{mark=*}{../trie.fvs.2.merged};
-			\myplot{ACMBlue}{mark=*}{../set.fvs.2.merged};
+			\myplot{ACMBlue}{mark=*}{../trie.fvs.2.merged};
+			\myplot{ACMOrange}{mark=square*,densely dotted}{../set.fvs.2.merged};
 			\myplot{ACMRed}{densely dashed, mark=triangle*}{../immer.fvs.2.merged};
 
-            %\addplot [ACMPurple, smooth,domain=1:1024,xshift=32] {(((x * ln(x) / ln(2))^3};
-            \addplot [ACMPurple, smooth,domain=1:1024,xshift=32] {(((x * ln(x) / ln(2))^3};
+            \addplot[ACMPurple, smooth,domain=1:1024,xshift=32] {(((x * ln(x) / ln(2))^3};
+            \label{nlogn3}
 
 			\nextgroupplot
 
-			\myplot{ACMPurple}{mark=*}{../trie.beta.2.merged};
-			\myplot{ACMBlue}{mark=*}{../set.beta.2.merged};
+			\myplot{ACMBlue}{mark=*}{../trie.beta.2.merged};
+			\myplot{ACMOrange}{mark=square*,densely dotted}{../set.beta.2.merged};
 			\myplot{ACMRed}{densely dashed, mark=triangle*}{../immer.beta.2.merged};
 
-            \plot [ACMOrange, smooth,domain=1:1024,xshift=32] {(x * ln(x) / ln(2))^2};
+            \plot [ACMDarkBlue, smooth,domain=1:1024,xshift=32] {(x * ln(x) / ln(2))^2};
             \label{nlogn2}
 
 			\nextgroupplot
 
-			\myplot{ACMPurple}{mark=*}{../trie.nest.2.merged};
-			\myplot{ACMBlue}{mark=*}{../set.nest.2.merged};
+			\myplot{ACMBlue}{mark=*}{../trie.nest.2.merged};
+			\myplot{ACMOrange}{mark=square*,densely dotted}{../set.nest.2.merged};
 			\myplot{ACMRed}{densely dashed, mark=triangle*}{../immer.nest.2.merged};
 
-            \addplot [ACMPurple, smooth,domain=1:1024,xshift=34] {(x * ln(x) / ln(2))^3};
-            \label{nlogn3}
+            \addplot[ACMDarkBlue, smooth,domain=1:1024,xshift=38] {(x * ln(x) / ln(2))^2};
 
-            \node [draw,fill=white] at (rel axis cs: 0.75,0.3) {\shortstack[l]{
+            \node [draw,fill=white] at (rel axis cs: 0.8,0.175) {\shortstack[l]{
             \footnotesize\ref{nlogn} $n \log_2 n$ \\
             \footnotesize\ref{nlogn2} $n^2 \log_2^2 n$ \\
             \footnotesize\ref{nlogn3} $n^3 \log_2^3 n$}};
@@ -198,7 +197,7 @@
 	\end{tikzpicture}
     % \vspace{-2ex}
 	\caption{%
-        Performance in $\mu{}s$ (microseconds) of free variables computation, $\beta$-reduction, and nesting tree computation, dependent on three synthetic programs with an increasing number of loops using the indexed trie and \immer (lower is better).
+        Performance in $\mu{}s$ (microseconds) of free variables computation, $\beta$-reduction, and nesting tree computation, dependent on three synthetic programs with an increasing number of loops using the indexed trie, \texttt{std::set} and \immer (lower is better).
         $10^3\,\mu{}s$ correspond to $1\,\mathit{ms}$ (millisecond) and $10^6\,\mu{}s$ to $1\,s$ (second).%
     }
     \label{fig:bench}

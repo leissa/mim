@@ -20,3 +20,6 @@ assets/*.fls
 assets/logo.log
 assets/logo.pdf
 assets/*.synctex.gz
+tex/bench.aux
+tex/bench.log
+tex/bench.pdf

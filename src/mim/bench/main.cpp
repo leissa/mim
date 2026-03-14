@@ -165,7 +165,8 @@ int main(int argc, const char** argv) {
         return EXIT_FAILURE;
     }
 
-    int iter = std::stoi(argv[2]);
+    int iter = std::stoi(argv[1]);
+    std::cout << iter << std::endl;
 
     char row;
     if (false) {}

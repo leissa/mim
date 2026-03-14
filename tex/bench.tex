@@ -86,19 +86,11 @@
                 ymode=log,
                 ylabel style={font=\footnotesize, inner sep=-15pt},
 				% ylabel={microseconds},
-				ymin=1, ymax=67108864, % 2^0 .. 2^24
+				ymin=1, ymax=1000000000, % 2^0 .. 2^24
 				ytickten={3,6,...,12}, % labels every 2 powers of 2
 				yticklabel={\(10^{\pgfmathprintnumber{\tick}}\)},
 				extra y ticks/.expanded={
-                        1, 10, 100, 1000, 10000, 100000, 1000000,
-                        10000000, 100000000
-						% % generate all powers of 2 between 2^0 and roughly 2^40 (pgfplots ignores out-of-range)
-						% 1,2,4,8,16,32,64,128,256,512,
-						% 1024,2048,4096,8192,16384,32768,65536,131072,
-						% 262144,524288,1048576,2097152,4194304,8388608,
-						% 16777216,33554432,67108864,134217728,268435456,
-						% 536870912,1073741824,2147483648,4294967296,
-						% 8589934592,17179869184,34359738368,68719476736
+                        1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000
 					},
 				extra y tick style={
 						grid style={gray!25},
@@ -163,7 +155,7 @@
 			\myplot{ACMBlue}{mark=*}{../set.nest.1.merged};
 			\myplot{ACMRed}{densely dashed, mark=triangle*}{../immer.nest.1.merged};
 
-            \addplot [ACMGreen, smooth] {x * ln(x) / ln(2)};
+            \addplot[ACMGreen, smooth] {x * ln(x) / ln(2)};
 
 			% ---- Row 3: loop nest ----
 			\nextgroupplot[ylabel={Loop Nest}]
@@ -172,7 +164,8 @@
 			\myplot{ACMBlue}{mark=*}{../set.fvs.2.merged};
 			\myplot{ACMRed}{densely dashed, mark=triangle*}{../immer.fvs.2.merged};
 
-            %\addplot [ACMPurple, smooth,domain=1:1024,xshift=24] {(((x * ln(x) / ln(2))^3};
+            %\addplot [ACMPurple, smooth,domain=1:1024,xshift=32] {(((x * ln(x) / ln(2))^3};
+            \addplot [ACMPurple, smooth,domain=1:1024,xshift=32] {(((x * ln(x) / ln(2))^3};
 
 			\nextgroupplot
 
@@ -180,16 +173,16 @@
 			\myplot{ACMBlue}{mark=*}{../set.beta.2.merged};
 			\myplot{ACMRed}{densely dashed, mark=triangle*}{../immer.beta.2.merged};
 
-            \plot [ACMOrange, smooth,domain=1:1024,xshift=24] {(x * ln(x) / ln(2))^2};
+            \plot [ACMOrange, smooth,domain=1:1024,xshift=32] {(x * ln(x) / ln(2))^2};
             \label{nlogn2}
 
 			\nextgroupplot
 
-			\myplot{ACMPurple}{mark=*}{../immer.nest.2.merged};
+			\myplot{ACMPurple}{mark=*}{../trie.nest.2.merged};
 			\myplot{ACMBlue}{mark=*}{../set.nest.2.merged};
 			\myplot{ACMRed}{densely dashed, mark=triangle*}{../immer.nest.2.merged};
 
-            \plot [ACMPurple, smooth,domain=1:1024,xshift=34] {(x * ln(x) / ln(2))^3};
+            \addplot [ACMPurple, smooth,domain=1:1024,xshift=34] {(x * ln(x) / ln(2))^3};
             \label{nlogn3}
 
             \node [draw,fill=white] at (rel axis cs: 0.75,0.3) {\shortstack[l]{

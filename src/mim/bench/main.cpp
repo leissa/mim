@@ -1,5 +1,6 @@
 #include <chrono>
 #include <cstdlib>
+#include <format>
 
 #include <mim/driver.h>
 #include <mim/nest.h>
@@ -18,12 +19,21 @@ enum {
     File_Num,
 };
 
+static constexpr auto Set =
+#ifdef MIM_IMMER
+        "immer";
+#elif defined(MIM_STD_SET)
+        "set";
+#else
+        "trie";
+#endif
+
 namespace mim::bench {
 using namespace mim::plug;
 
-void do_bench(std::ofstream* os, int test, int n, World& w, Lam* top) {
-    std::cout << "n/world size: " << n << "/" << w.size() << " = " << float(w.size()) / float(n) << std::endl;
-    std::cout << "free vars" << std::endl;
+void do_bench(std::ofstream* os, int row, int n, World& w, Lam* top) {
+    std::cout << std::format("set: {}, row: {}, n: {}", Set, row, n) << std::endl;
+    std::cout << "* free vars" << std::endl;
     {
         auto t1 = std::chrono::steady_clock::now();
         top->free_vars();
@@ -32,7 +42,7 @@ void do_bench(std::ofstream* os, int test, int n, World& w, Lam* top) {
         os[File_FVs] << n << " " << ms << std::endl;
     }
 
-    std::cout << "nest" << std::endl;
+    std::cout << "* nest" << std::endl;
     {
         auto t1   = std::chrono::steady_clock::now();
         auto nest = Nest(top);
@@ -41,7 +51,7 @@ void do_bench(std::ofstream* os, int test, int n, World& w, Lam* top) {
         os[File_Nest] << n << " " << ms << std::endl;
     }
 
-    std::cout << "beta" << std::endl;
+    std::cout << "* beta" << std::endl;
     {
         auto dummy = w.axm(top->type()->dom());
         auto t1    = std::chrono::steady_clock::now();
@@ -52,14 +62,16 @@ void do_bench(std::ofstream* os, int test, int n, World& w, Lam* top) {
     }
 
     {
-        auto ll = std::to_string(test) + "."s + std::to_string(n) + ".ll"s;
+        auto ll   = std::to_string(row) + "."s + std::to_string(n) + ".ll"s;
         auto path = fs::path{ll};
         if (fs::exists(path))
-            std::cout << ll << " already exists" << std::endl;
+            std::cout << "* " << ll << " already exists" << std::endl;
         else {
-            std::cout << "emit " << ll << std::endl;
+            std::cout << "* emit " << ll << std::endl;
+#if 0
             auto of = std::ofstream(ll);
             w.driver().backend("ll")(w, of);
+#endif
         }
     }
 
@@ -157,6 +169,7 @@ void loop_nest(std::ofstream* os, int n) {
 
 int main(int argc, const char** argv) {
     std::ofstream ofs[File_Num];
+    std::string names[File_Num];
     auto algos = std::array<std::string, File_Num>{"fvs."s, "nest."s, "beta."s};
     auto usage = [argv] { std::cerr << "usage: " << argv[0] << " <iter> 0|1|2 [suffix]" << std::endl; };
 
@@ -169,10 +182,13 @@ int main(int argc, const char** argv) {
     std::cout << iter << std::endl;
 
     char row;
-    if (false) {}
-    else if (strcmp(argv[2], "0") == 0) row = '0';
-    else if (strcmp(argv[2], "1") == 0) row = '1';
-    else if (strcmp(argv[2], "2") == 0) row = '2';
+    if (false) {
+    } else if (strcmp(argv[2], "0") == 0)
+        row = '0';
+    else if (strcmp(argv[2], "1") == 0)
+        row = '1';
+    else if (strcmp(argv[2], "2") == 0)
+        row = '2';
     else {
         usage();
         return EXIT_FAILURE;
@@ -182,16 +198,12 @@ int main(int argc, const char** argv) {
     if (argc >= 4) suffix = argv[3];
 
     for (int i = 0; i != File_Num; ++i) {
-#ifdef MIM_IMMER
-        auto name = "immer."s;
-#elif defined(MIM_STD_SET)
-        auto name = "set."s;
-#else
-        auto name = "trie."s;
-#endif
+        std::string name = Set;
+        name += '.';
         name += algos[i];
         name += row + "."s;
         name += suffix;
+        names[i] = name;
 
         ofs[i].open(name);
         ofs[i] << "% n ms" << std::endl;

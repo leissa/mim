@@ -9,12 +9,30 @@ import numpy as np
 WARMUP_RUNS   = 3
 N_RUNS        = 9
 WARMUP_RUNS   = 0
-N_RUNS        = 2
+N_RUNS        = 1
 ALGOS         = ["fvs", "nest", "beta"]
 SETS          = ["trie", "immer", "set"]
-#ROWS          = [0, 1, 2]
-ROWS          = [0]
+SETS          = ["immer"]
+ROWS          = [0, 1, 2]
 TASKSET_MASK  = "0x1"         # CPU core mask (e.g. 0x1 = core 0)
+
+ITERS = {
+    "trie" : {
+        0: 20,
+        1: 20,
+        2: 11,
+    },
+    "immer" : {
+        0: 20,
+        1: 13,
+        2: 11,
+    },
+    "set" : {
+        0: 15,
+        1: 13,
+        2: 10,
+    },
+}
 
 def run_cmd(cmd):
     print(f"  → Executing: {cmd}")
@@ -25,7 +43,7 @@ def run_benchmarks():
     for set in SETS:
         for row in ROWS:
             bench = f"release_{set}/bin/bench"
-            iter = 14
+            iter  = ITERS[set][row]
             # --- Warmup runs ---
             print(f"Performing {WARMUP_RUNS} warmup runs (results ignored)...")
             for i in range(1, WARMUP_RUNS + 1):

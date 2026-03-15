@@ -1,5 +1,6 @@
 #include <chrono>
 #include <cstdlib>
+
 #include <format>
 
 #include <mim/driver.h>
@@ -21,11 +22,11 @@ enum {
 
 static constexpr auto Set =
 #ifdef MIM_IMMER
-        "immer";
+    "immer";
 #elif defined(MIM_STD_SET)
-        "set";
+    "set";
 #else
-        "trie";
+    "trie";
 #endif
 
 namespace mim::bench {
@@ -105,11 +106,12 @@ void cascade(std::ofstream* os, int n, bool combine) {
     ast::load_plugins(w, View<std::string>{"compile", "core"});
 
     auto ti64      = w.type_i64();
-    auto top       = w.mut_fun(ti64, ti64)->set("top");
-    auto prev      = top;
+    auto plz       = w.mut_fun(ti64, ti64)->set("plzinline");
+    auto prev      = plz;
     auto [in, ret] = prev->vars<2>();
     auto res       = in;
-
+    auto top       = w.mut_fun(ti64, ti64)->set("top");
+    top->app(false, plz, top->var());
     top->make_external();
 
     for (int i = 0; i != n; ++i) {
@@ -154,15 +156,17 @@ void loop_nest(std::ofstream* os, int n) {
     ast::load_plugins(w, View<std::string>{"compile", "core"});
 
     auto ti64        = w.type_i64();
-    auto top         = w.mut_fun(ti64, ti64)->set("top");
-    auto prev        = top;
+    auto plz         = w.mut_fun(ti64, ti64)->set("plzinline");
+    auto prev        = plz;
     auto [in, ret]   = prev->vars<2>();
-    auto [exit, phi] = build_nest(n, w, top, in);
+    auto [exit, phi] = build_nest(n, w, plz, in);
+    auto top         = w.mut_fun(ti64, ti64)->set("top");
 
     exit->app(false, ret, phi);
+    top->app(false, plz, top->var());
     top->make_external();
 
-    do_bench(os, 2, n, w, top);
+    do_bench(os, 2, n, w, plz);
 }
 
 } // namespace mim::bench

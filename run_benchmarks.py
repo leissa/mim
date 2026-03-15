@@ -4,6 +4,7 @@ import subprocess
 import glob
 import pandas as pd
 import numpy as np
+import re
 
 # === CONFIG ===
 WARMUP_RUNS   = 3
@@ -15,6 +16,7 @@ SETS          = ["trie", "immer", "set"]
 SETS          = ["immer"]
 ROWS          = [0, 1, 2]
 TASKSET_MASK  = "0x1"         # CPU core mask (e.g. 0x1 = core 0)
+OPT           = "opt"
 
 ITERS = {
     "trie" : {
@@ -34,12 +36,13 @@ ITERS = {
     },
 }
 
-def run_cmd(cmd):
-    print(f"  → Executing: {cmd}")
-    cmd = "ulimit -s unlimited && " + cmd
-    subprocess.run(cmd, shell=True, check=True)
+def run_cmd(cmd, capture_output=False):
+    if not capture_output:
+        cmd = "ulimit -s unlimited && " + cmd
+    print(f" → Executing: '{cmd}'")
+    return subprocess.run(cmd, shell=True, check=True, text=True, capture_output=capture_output).stderr
 
-def run_benchmarks():
+def run_mimir_benchmarks():
     for set in SETS:
         for row in ROWS:
             bench = f"release_{set}/bin/bench"
@@ -59,35 +62,113 @@ def run_benchmarks():
                 cmd    = f"taskset {TASKSET_MASK} {bench} {iter} {row} {suffix}"
                 run_cmd(cmd)
 
-def merge_results():
+def extract_wall_time(opt_out, pass_name):
+    # Regex to match a line from the "Pass execution timing report" section.
+    # It captures the four numeric columns (User, System, User+System, Wall)
+    # and the pass name that follows.
+    pattern = re.compile(
+        r'^\s*'                                         # leading whitespace
+        r'(?:(\d+\.\d+)\s+\(\s*\d+(?:\.\d+)?%\)\s*)?'   # User time + percentage (is missing sometimes)
+        r'(\d+\.\d+)\s+\(\s*\d+(?:\.\d+)?%\)\s*'        # System time
+        r'(\d+\.\d+)\s+\(\s*\d+(?:\.\d+)?%\)\s*'        # User+System
+        r'(\d+\.\d+)\s+\(\s*\d+(?:\.\d+)?%\)\s*'        # Wall time (this is group 4)
+        r'(.*)$'                                        # Pass name (rest of the line)
+    )
+
+    for line in opt_out.splitlines():
+        match = pattern.match(line)
+        if match:
+            wall_time_str = match.group(4)
+            name_on_line  = match.group(5).strip()
+            if name_on_line == pass_name:
+                return int(float(wall_time_str) * 1000000)
+
+    return 0
+
+def run_llvm_benchmarks():
+    for row in ROWS:
+        lls = []
+        for ll in glob.glob(f"{row}.*.ll"):
+            # Extract the part between the first dot and the last ".ll"
+            # Example: "0.16.ll" -> parts = ["0", "16", "ll"]
+            parts = ll.split('.')
+            if len(parts) == 3:
+                num_str = parts[1]
+                try:
+                    num = int(num_str)
+                    lls.append((num, ll))
+                except ValueError:
+                    print(f"Warning: '{num_str}' in {ll} is not an integer.")
+            else:
+                print(f"Warning: {ll} does not match expected format.")
+
+        lls.sort(key = lambda num_ll: num_ll[0])
+
+        with open(f"{row}.dom.run1", "w") as dom, open(f"{row}.inl.run1", "w") as inl, open(f"{row}.opt.run1", "w") as opt:
+            dom.write("% n ms\n")
+            inl.write("% n ms\n")
+            opt.write("% n ms\n")
+
+            for n, ll in lls:
+                cmd = f"{OPT} -passes='require<domtree>' -disable-output -time-passes {ll}"
+                opt_out = run_cmd(cmd, capture_output=True)
+                t = extract_wall_time(opt_out, "RequireAnalysisPass<llvm::DominatorTreeAnalysis, llvm::Function, llvm::AnalysisManager<Function>>")
+                dom.write(f"{n} {t}\n")
+
+                cmd = f"{OPT} -passes='inline' -disable-output -time-passes {ll}"
+                opt_out = run_cmd(cmd, capture_output=True)
+                t = extract_wall_time(opt_out, "InlinerPass")
+                inl.write(f"{n} {t}\n")
+
+                cmd = f"{OPT} -passes='inline,instcombine,early-cse,dce,unreachableblockelim' -disable-output -time-passes {ll}"
+                opt_out = run_cmd(cmd, capture_output=True)
+                t = 0
+                t += extract_wall_time(opt_out, "DCEPass")
+                t += extract_wall_time(opt_out, "EarlyCSEPass")
+                t += extract_wall_time(opt_out, "InlinerPass")
+                t += extract_wall_time(opt_out, "InstCombinePass")
+                t += extract_wall_time(opt_out, "UnreachableBlockElimPass")
+                opt.write(f"{n} {t}\n")
+
+def merge(prefix):
+    g = f"{prefix}.run*"
+    files = sorted(glob.glob(g))
+    if not files:
+        print(f"No files found for `{g}`. Skipping.")
+        return
+
+    dfs = []
+    for f in files:
+        df = pd.read_csv(f, sep='\\s+', comment="%", names=["n", "cycles"])
+        dfs.append(df)
+
+    merged = dfs[0][["n"]].copy()
+    all_cycles = np.stack([df["cycles"].to_numpy() for df in dfs], axis=1)
+
+    merged["median"] = np.median(all_cycles, axis=1).astype(int)
+    merged["max"]    = np.max   (all_cycles, axis=1).astype(int)
+    merged["min"]    = np.min   (all_cycles, axis=1).astype(int)
+
+    out_file = f"{prefix}.merged"
+    merged.to_csv(out_file, sep=" ", index=False, header=["n", "median", "max", "min"])
+    print(f"✅ Wrote {out_file}")
+
+def merge_mimir_results():
     for set in SETS:
         for row in ROWS:
             for algo in ALGOS:
-                g = f"{set}.{algo}.{row}.run*"
-                files = sorted(glob.glob(g))
-                if not files:
-                    print(f"No files found for `{g}`. Skipping.")
-                    continue
+                merge(f"{set}.{algo}.{row}")
 
-                dfs = []
-                for f in files:
-                    df = pd.read_csv(f, sep='\\s+', comment="%", names=["n", "cycles"])
-                    dfs.append(df)
-
-                merged = dfs[0][["n"]].copy()
-                all_cycles = np.stack([df["cycles"].to_numpy() for df in dfs], axis=1)
-
-                merged["median"] = np.median(all_cycles, axis=1).astype(int)
-                merged["max"]    = np.max   (all_cycles, axis=1).astype(int)
-                merged["min"]    = np.min   (all_cycles, axis=1).astype(int)
-
-                out_file = f"{set}.{algo}.{row}.merged"
-                merged.to_csv(out_file, sep=" ", index=False, header=["n", "median", "max", "min"])
-                print(f"✅ Wrote {out_file}")
+def merge_llvm_results():
+    for row in ROWS:
+        for algo in ["dom", "inl", "opt"]:
+            merge(f"{row}.{algo}")
 
 def main():
-    run_benchmarks()
-    merge_results()
+    run_mimir_benchmarks()
+    run_llvm_benchmarks()
+    merge_mimir_results()
+    merge_llvm_results()
 
 if __name__ == "__main__":
     main()

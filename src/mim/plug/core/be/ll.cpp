@@ -267,8 +267,9 @@ void Emitter::emit_imported(Lam* lam) {
 }
 
 std::string Emitter::prepare() {
-    auto internal = root()->is_external() ? "" : "internal ";
-    auto ret_t    = convert_ret_pi(root()->type()->ret_pi());
+    auto internal     = root()->is_external() ? "" : "internal ";
+    auto ret_t        = convert_ret_pi(root()->type()->ret_pi());
+    auto alwaysinline = root()->sym() == "plzinline" ? "alwaysinline " : "";
     print(func_impls_, "define {} {} {}(", internal, ret_t, id(root()));
 
     auto vars = root()->vars();
@@ -280,7 +281,7 @@ std::string Emitter::prepare() {
         sep = ", ";
     }
 
-    print(func_impls_, ") {{\n");
+    print(func_impls_, ") {} {{\n", alwaysinline);
     return root()->unique_name();
 }
 

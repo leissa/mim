@@ -69,10 +69,8 @@ void do_bench(std::ofstream* os, int row, int n, World& w, Lam* top) {
             std::cout << "* " << ll << " already exists" << std::endl;
         else {
             std::cout << "* emit " << ll << std::endl;
-#if 0
             auto of = std::ofstream(ll);
             w.driver().backend("ll")(w, of);
-#endif
         }
     }
 
@@ -111,8 +109,11 @@ void cascade(std::ofstream* os, int n, bool combine) {
     auto [in, ret] = prev->vars<2>();
     auto res       = in;
     auto top       = w.mut_fun(ti64, ti64)->set("top");
-    top->app(false, plz, top->var());
+    auto eta       = w.mut_con(ti64);
+
     top->make_external();
+    top->app(false, plz, {top->var(2, 0), eta});
+    eta->app(false, top->var(2, 1), eta->var());
 
     for (int i = 0; i != n; ++i) {
         std::tie(prev, in) = build_loop(w, prev, in);
@@ -121,7 +122,7 @@ void cascade(std::ofstream* os, int n, bool combine) {
 
     prev->app(false, ret, in);
 
-    do_bench(os, combine ? 1 : 0, n, w, top);
+    do_bench(os, combine ? 1 : 0, n, w, plz);
 }
 
 std::pair<Lam*, const Def*> build_nest(int i, World& w, Lam* prev, const Def* in) {
@@ -161,10 +162,12 @@ void loop_nest(std::ofstream* os, int n) {
     auto [in, ret]   = prev->vars<2>();
     auto [exit, phi] = build_nest(n, w, plz, in);
     auto top         = w.mut_fun(ti64, ti64)->set("top");
+    auto eta         = w.mut_con(ti64);
 
     exit->app(false, ret, phi);
-    top->app(false, plz, top->var());
     top->make_external();
+    top->app(false, plz, {top->var(2, 0), eta});
+    eta->app(false, top->var(2, 1), eta->var());
 
     do_bench(os, 2, n, w, plz);
 }

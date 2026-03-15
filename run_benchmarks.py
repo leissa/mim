@@ -9,11 +9,8 @@ import re
 # === CONFIG ===
 WARMUP_RUNS   = 3
 N_RUNS        = 9
-WARMUP_RUNS   = 0
-N_RUNS        = 1
 ALGOS         = ["fvs", "nest", "beta"]
 SETS          = ["trie", "immer", "set"]
-SETS          = ["immer"]
 ROWS          = [0, 1, 2]
 TASKSET_MASK  = "0x1"         # CPU core mask (e.g. 0x1 = core 0)
 OPT           = "opt"
@@ -33,6 +30,26 @@ ITERS = {
         0: 15,
         1: 13,
         2: 10,
+    },
+}
+
+WARMUP_RUNS   = 0
+N_RUNS        = 1
+ITERS = {
+    "trie" : {
+        0: 10,
+        1: 10,
+        2: 10,
+    },
+    "immer" : {
+        0: 10,
+        1: 10,
+        2: 10,
+    },
+    "set" : {
+        0: 10,
+        1: 10,
+        2: 9,
     },
 }
 

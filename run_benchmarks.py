@@ -54,8 +54,9 @@ ITERS = {
 }
 
 def run_cmd(cmd, capture_output=False):
+    cmd = f"taskset {TASKSET_MASK} {cmd}"
     if not capture_output:
-        cmd = "ulimit -s unlimited && " + cmd
+        cmd = f"ulimit -s unlimited && {cmd}"
     print(f" → Executing: '{cmd}'")
     return subprocess.run(cmd, shell=True, check=True, text=True, capture_output=capture_output).stderr
 
@@ -68,7 +69,7 @@ def run_mimir_benchmarks():
             print(f"Performing {WARMUP_RUNS} warmup runs (results ignored)...")
             for i in range(1, WARMUP_RUNS + 1):
                 suffix = f"warmup{i}"
-                cmd    = f"taskset {TASKSET_MASK} {bench} {iter} {row} {suffix}"
+                cmd    = f"{bench} {iter} {row} {suffix}"
                 run_cmd(cmd)
             print("Warmup complete.\n")
 
@@ -76,7 +77,7 @@ def run_mimir_benchmarks():
             for i in range(1, N_RUNS + 1):
                 print(f"Running benchmark {i}/{N_RUNS} pinned to core mask {TASKSET_MASK} ...")
                 suffix = f"run{i}"
-                cmd    = f"taskset {TASKSET_MASK} {bench} {iter} {row} {suffix}"
+                cmd    = f"{bench} {iter} {row} {suffix}"
                 run_cmd(cmd)
 
 def extract_wall_time(opt_out, pass_name):
@@ -210,7 +211,7 @@ def merge_llvm_results():
             merge(f"{row}.{algo}")
 
 def main():
-    #run_mimir_benchmarks()
+    run_mimir_benchmarks()
     run_llvm_benchmarks()
     merge_mimir_results()
     merge_llvm_results()

@@ -115,7 +115,7 @@
 			\myplot{ACMOrange}{mark=square*}{../immer.fvs.0.merged};
             \addlegendentry{\immer}
 
-			\myplot{ACMYellow}{mark=triangle*,densely dotted}{../set.fvs.0.merged};
+			\myplot{ACMYellow}{mark=triangle*,thin}{../set.fvs.0.merged};
             \addlegendentry{\texttt{std::set}}
 
 			\myplot{ACMPurple}{densely dashed,mark=diamond*}{../0.dom.merged};
@@ -127,7 +127,7 @@
 
 			\myplot{ACMBlue}{mark=*,ultra thick}{../trie.beta.0.merged};
 			\myplot{ACMOrange}{mark=square*}{../immer.beta.0.merged};
-			\myplot{ACMYellow}{mark=triangle*,densely dotted}{../set.beta.0.merged};
+			\myplot{ACMYellow}{mark=triangle*,thin}{../set.beta.0.merged};
 			\myplot{ACMPurple2}{densely dashed,mark=diamond*}{../0.inl.merged};
             \label{llvm-inl}
 			\myplot{ACMPurple}{densely dashed,mark=diamond*}{../0.opt.merged};
@@ -143,7 +143,7 @@
 
 			\myplot{ACMBlue}{mark=*,ultra thick}{../trie.nest.0.merged};
 			\myplot{ACMOrange}{mark=square*}{../immer.nest.0.merged};
-			\myplot{ACMYellow}{mark=triangle*,densely dotted}{../set.nest.0.merged};
+			\myplot{ACMYellow}{mark=triangle*,thin}{../set.nest.0.merged};
 
 			% ---- Row 2: loop cascade2 ----
 			\nextgroupplot[ylabel={Acc. Loop Cascade}]
@@ -152,7 +152,7 @@
 
 			\myplot{ACMBlue}{mark=*,ultra thick}{../trie.fvs.1.merged};
 			\myplot{ACMOrange}{mark=square*}{../immer.fvs.1.merged};
-			\myplot{ACMYellow}{mark=triangle*,densely dotted}{../set.fvs.1.merged};
+			\myplot{ACMYellow}{mark=triangle*,thin}{../set.fvs.1.merged};
 			\myplot{ACMPurple}{densely dashed,mark=diamond*}{../1.dom.merged};
 
 			\nextgroupplot
@@ -161,7 +161,7 @@
 
 			\myplot{ACMBlue}{mark=*,ultra thick}{../trie.beta.1.merged};
 			\myplot{ACMOrange}{mark=square*}{../immer.beta.1.merged};
-			\myplot{ACMYellow}{mark=triangle*,densely dotted}{../set.beta.1.merged};
+			\myplot{ACMYellow}{mark=triangle*,thin}{../set.beta.1.merged};
 			\myplot{ACMPurple2}{densely dashed,mark=diamond*}{../1.inl.merged};
 			\myplot{ACMPurple}{densely dashed,mark=pentagon*}{../1.opt.merged};
 
@@ -171,7 +171,7 @@
 
 			\myplot{ACMBlue}{mark=*,ultra thick}{../trie.nest.1.merged};
 			\myplot{ACMOrange}{mark=square*}{../immer.nest.1.merged};
-			\myplot{ACMYellow}{mark=triangle*,densely dotted}{../set.nest.1.merged};
+			\myplot{ACMYellow}{mark=triangle*,thin}{../set.nest.1.merged};
 
 			% ---- Row 3: loop nest ----
 			\nextgroupplot[ylabel={Loop Nest}]
@@ -181,14 +181,14 @@
 
 			\myplot{ACMBlue}{mark=*,ultra thick}{../trie.fvs.2.merged};
 			\myplot{ACMOrange}{mark=square*}{../immer.fvs.2.merged};
-			\myplot{ACMYellow}{mark=triangle*,densely dotted}{../set.fvs.2.merged};
+			\myplot{ACMYellow}{mark=triangle*,thin}{../set.fvs.2.merged};
 			\myplot{ACMPurple}{densely dashed,mark=diamond*}{../2.dom.merged};
 
 			\nextgroupplot
 
 			\myplot{ACMBlue}{mark=*,ultra thick}{../trie.beta.2.merged};
 			\myplot{ACMOrange}{mark=square*}{../immer.beta.2.merged};
-			\myplot{ACMYellow}{mark=triangle*,densely dotted}{../set.beta.2.merged};
+			\myplot{ACMYellow}{mark=triangle*,thin}{../set.beta.2.merged};
 			\myplot{ACMPurple2}{densely dashed,mark=diamond*}{../2.inl.merged};
 			\myplot{ACMPurple}{densely dashed,mark=pentagon*}{../2.opt.merged};
 
@@ -201,7 +201,7 @@
 
 			\myplot{ACMBlue}{mark=*,ultra thick}{../trie.nest.2.merged};
 			\myplot{ACMOrange}{mark=square*}{../immer.nest.2.merged};
-			\myplot{ACMYellow}{mark=triangle*,densely dotted}{../set.nest.2.merged};
+			\myplot{ACMYellow}{mark=triangle*,thin}{../set.nest.2.merged};
 
             \node [draw,fill=white] at (rel axis cs: 0.8,0.175) {\shortstack[l]{
             \footnotesize\ref{nlogn} $n \log_2 n$ \\

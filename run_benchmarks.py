@@ -239,7 +239,7 @@ def main():
     run_llvm_benchmarks()
     merge_mimir_results()
     merge_llvm_results()
-    make_figure ()
+    make_figure()
 
 if __name__ == "__main__":
     main()

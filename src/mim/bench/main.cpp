@@ -88,11 +88,13 @@ std::pair<Lam*, const Def*> build_loop(World& w, Lam* prev, const Def* in) {
 
     prev->app(false, head, zero);
 
-    auto phi  = head->var();
-    auto cond = w.call(core::icmp::ul, Defs{phi, in});
+    auto phi = head->var();
+    // auto cond = w.call(core::icmp::ul, Defs{phi, in});
+    auto cond = w.app(w.app(w.annex(core::icmp::ul), w.lit_i64()), {phi, in});
     head->branch(false, cond, body, exit);
 
-    auto add = w.call(core::wrap::add, 0_n, Defs{phi, one});
+    // auto add = w.call(core::wrap::add, 0_n, Defs{phi, one});
+    auto add = w.app(w.app(w.app(w.annex(core::wrap::add), w.lit_i64()), w.lit_nat_0()), {phi, one});
     body->app(false, head, add);
 
     return {exit, phi};
@@ -117,7 +119,8 @@ void cascade(std::ofstream* os, int n, bool combine) {
 
     for (int i = 0; i != n; ++i) {
         std::tie(prev, in) = build_loop(w, prev, in);
-        res                = combine ? w.call(core::wrap::add, 0_n, Defs{res, in}) : in;
+        // res = combine ? w.call(core::wrap::add, 0_n, Defs{res, in}) : in;
+        res = combine ? w.app(w.app(w.app(w.annex(core::wrap::add), w.lit_i64()), w.lit_nat_0()), {res, in}) : in;
     }
 
     prev->app(false, ret, in);
@@ -137,10 +140,12 @@ std::pair<Lam*, const Def*> build_nest(int i, World& w, Lam* prev, const Def* in
     prev->app(false, head, zero);
 
     auto phi  = head->var();
-    auto cond = w.call(core::icmp::ul, Defs{phi, in});
+    //auto cond = w.call(core::icmp::ul, Defs{phi, in});
+    auto cond = w.app(w.app(w.annex(core::icmp::ul), w.lit_i64()), {phi, in});
     head->branch(false, cond, body, exit);
 
-    auto add = w.call(core::wrap::add, 0_n, Defs{phi, one});
+    //auto add = w.call(core::wrap::add, 0_n, Defs{phi, one});
+    auto add = w.app(w.app(w.app(w.annex(core::wrap::add), w.lit_i64()), w.lit_nat_0()), {phi, one});
     if (i == 0) {
         body->app(false, head, add);
     } else {

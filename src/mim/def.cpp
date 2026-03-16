@@ -27,6 +27,7 @@ Def::Def(World* world, Node node, const Def* type, Defs ops, flags_t flags)
     , node_(node)
     , mut_(false)
     , external_(false)
+    , annex_(false)
     , dep_(node == Node::Hole    ? unsigned(Dep::Hole)
            : node == Node::Proxy ? unsigned(Dep::Proxy)
            : node == Node::Var   ? (Dep::Var | Dep::Mut)
@@ -114,6 +115,7 @@ Def::Def(Node node, const Def* type, size_t num_ops, flags_t flags)
     , node_(node)
     , mut_(true)
     , external_(false)
+    , annex_(false)
     , dep_(Dep::Mut | (node == Node::Hole ? Dep::Hole : Dep::None))
     , num_ops_(num_ops)
     , type_(type) {
@@ -664,13 +666,13 @@ bool Def::equal(const Def* other) const {
     return result;
 }
 
-void Def::make_external() { return world().make_external(this); }
-void Def::make_internal() { return world().make_internal(this); }
+void Def::externalize() { return world().externals().externalize(this); }
+void Def::internalize() { return world().externals().internalize(this); }
 
 void Def::transfer_external(Def* to) {
     assert(this->sym() == to->sym());
-    make_internal();
-    to->make_external();
+    internalize();
+    to->externalize();
 }
 
 std::string Def::unique_name() const { return sym().str() + "_"s + std::to_string(gid()); }

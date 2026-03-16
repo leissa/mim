@@ -495,9 +495,10 @@ public:
     /// @name external
     ///@{
     bool is_external() const noexcept { return external_; }
-    void make_external();
-    void make_internal();
+    void externalize();
+    void internalize();
     void transfer_external(Def* to);
+    bool is_annex() const noexcept { return annex_; }
     ///@}
 
     /// @name Casts
@@ -704,10 +705,11 @@ protected:
     u8 trip_  = 0;
 
 private:
-    Node node_;
-    bool mut_      : 1;
-    bool external_ : 1;
-    unsigned dep_  : 6;
+    Node node_; // 8
+    bool mut_           : 1;
+    bool external_      : 1;
+    mutable bool annex_ : 1;
+    unsigned dep_       : 5;
     u32 mark_ = 0;
 #ifndef NDEBUG
     size_t curr_op_ = 0;

@@ -5,7 +5,7 @@ namespace mim {
 bool BetaRedPhase::analyze() {
     for (auto def : old_world().annexes())
         visit(def, false);
-    for (auto def : old_world().externals())
+    for (auto def : old_world().externals().muts())
         visit(def, false);
 
     return false; // no fixed-point neccessary
@@ -16,7 +16,7 @@ void BetaRedPhase::analyze(const Def* def) {
     if (def->isa<Var>()) return; // ignore Var's mut
 
     for (auto d : def->deps())
-        visit(d);
+        visit(d, true);
 }
 
 void BetaRedPhase::visit(const Def* def, bool candidate) {

@@ -111,7 +111,7 @@ void cascade(std::ofstream* os, int n, bool combine) {
     auto top       = w.mut_fun(ti64, ti64)->set("top");
     auto eta       = w.mut_con(ti64);
 
-    top->make_external();
+    top->externalize();
     top->app(false, plz, {top->var(2, 0), eta});
     eta->app(false, top->var(2, 1), eta->var());
 
@@ -165,7 +165,7 @@ void loop_nest(std::ofstream* os, int n) {
     auto eta         = w.mut_con(ti64);
 
     exit->app(false, ret, phi);
-    top->make_external();
+    top->externalize();
     top->app(false, plz, {top->var(2, 0), eta});
     eta->app(false, top->var(2, 1), eta->var());
 

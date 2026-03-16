@@ -381,6 +381,7 @@ const Def* UniqExpr::emit_(Emitter& e) const { return e.world().uniq(inhabitant(
  */
 
 void AxmDecl::emit(Emitter& e) const {
+    if (!annex_) return; // Skip emit if binding failed
     mim_type_ = type()->emit(e);
     auto& id  = annex_->id;
 
@@ -511,7 +512,7 @@ void LamDecl::emit_body(Emitter& e) const {
         }
     }
 
-    if (is_external()) doms().front()->lam_->make_external();
+    if (is_external()) doms().front()->lam_->externalize();
     e.register_annex(annex_, sub_, def_);
 }
 

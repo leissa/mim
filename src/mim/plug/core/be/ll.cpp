@@ -5,6 +5,8 @@
 #include <iomanip>
 #include <ranges>
 
+#include <absl/container/btree_set.h>
+
 #include <mim/plug/clos/clos.h>
 #include <mim/plug/math/math.h>
 #include <mim/plug/mem/mem.h>
@@ -36,19 +38,6 @@ namespace math = mim::plug::math;
 namespace mem  = mim::plug::mem;
 
 namespace {
-bool is_const(const Def* def) {
-    if (def->isa<Bot>()) return true;
-    if (def->isa<Lit>()) return true;
-    if (auto pack = def->isa_imm<Pack>()) return is_const(pack->arity()) && is_const(pack->body());
-
-    if (auto tuple = def->isa<Tuple>()) {
-        auto ops = tuple->ops();
-        return std::ranges::all_of(ops, [](auto def) { return is_const(def); });
-    }
-
-    return false;
-}
-
 const char* math_suffix(const Def* type) {
     if (auto w = math::isa_f(type)) {
         switch (*w) {
@@ -70,7 +59,7 @@ const char* llvm_suffix(const Def* type) {
     error("unsupported foating point type '{}'", type);
 }
 
-// [%mem.M, T] => T
+// [%mem.M 0, T] => T
 // TODO there may be more instances where we have to deal with this trickery
 const Def* isa_mem_sigma_2(const Def* type) {
     if (auto sigma = type->isa<Sigma>())
@@ -346,20 +335,10 @@ void Emitter::emit_epilogue(Lam* lam) {
                 bb.tail("ret {} {}", type, prev);
             }
         }
-    } else if (auto ex = app->callee()->isa<Extract>(); ex && Pi::isa_basicblock(app->callee_type())) {
-        // TODO use Branch
-        // emit_unsafe(app->arg());
-        // A call to an extract like constructed for conditionals (else,then)#cond (args)
-        for (auto callee_def : ex->tuple()->projs()) {
-            // dissect the tuple of lambdas
-            auto callee = callee_def->as_mut<Lam>();
-            // each callees type should agree with the argument type (should be checked by type checking).
-            // Especially, the number of vars should be the number of arguments.
-            // TODO: does not hold for complex arguments that are not tuples.
-            assert(callee->num_tvars() == app->num_targs());
+    } else if (auto dispatch = Dispatch(app)) {
+        for (auto callee : dispatch.tuple()->projs([](const Def* def) { return def->isa_mut<Lam>(); })) {
             size_t n = callee->num_tvars();
             for (size_t i = 0; i != n; ++i) {
-                // emits the arguments one by one (TODO: handle together like before)
                 if (auto arg = emit_unsafe(app->arg(n, i)); !arg.empty()) {
                     auto phi = callee->var(n, i);
                     assert(!Axm::isa<mem::M>(phi->type()));
@@ -369,17 +348,19 @@ void Emitter::emit_epilogue(Lam* lam) {
             }
         }
 
-        auto c = emit(ex->index());
-        if (ex->tuple()->num_projs() == 2) {
-            auto [f, t] = ex->tuple()->projs<2>([this](auto def) { return emit(def); });
-            return bb.tail("br i1 {}, label {}, label {}", c, t, f);
-        } else {
-            auto t_c = convert(ex->index()->type());
-            bb.tail("switch {} {}, label {} [ ", t_c, c, emit(ex->tuple()->proj(0)));
-            for (auto i = 1u; i < ex->tuple()->num_projs(); i++)
-                print(bb.tail().back(), "{} {}, label {} ", t_c, std::to_string(i), emit(ex->tuple()->proj(i)));
-            print(bb.tail().back(), "]");
-        }
+        auto v_index = emit(dispatch.index());
+        size_t n     = dispatch.num_targets();
+        auto bbs     = absl::FixedArray<std::string>(n);
+        for (size_t i = 0; i != n; ++i)
+            bbs[i] = emit(dispatch.target(i));
+
+        if (auto branch = Branch(app)) return bb.tail("br i1 {}, label {}, label {}", v_index, bbs[1], bbs[0]);
+
+        auto t_index = convert(dispatch.index()->type());
+        bb.tail("switch {} {}, label {} [ ", t_index, v_index, bbs[0]);
+        for (size_t i = 1; i != n; ++i)
+            print(bb.tail().back(), "{} {}, label {} ", t_index, std::to_string(i), bbs[i]);
+        print(bb.tail().back(), "]");
     } else if (app->callee()->isa<Bot>()) {
         return bb.tail("ret ; bottom: unreachable");
     } else if (auto callee = Lam::isa_mut_basicblock(app->callee())) { // ordinary jump
@@ -436,18 +417,19 @@ void Emitter::emit_epilogue(Lam* lam) {
             auto t_ret = convert_ret_pi(ret_lam->type());
             bb.tail("{} = call {} {}({, })", name, t_ret, v_callee, args);
 
-            for (size_t i = 0, e = ret_lam->num_vars(); i != e; ++i) {
+            for (size_t i = 0, j = 0, e = ret_lam->num_vars(); i != e; ++i) {
                 auto phi = ret_lam->var(i);
                 if (Axm::isa<mem::M>(phi->type())) continue;
 
-                auto namei = name;
+                auto namej = name;
                 if (e > 2) {
-                    namei += '.' + std::to_string(i - 1);
-                    bb.tail("{} = extractvalue {} {}, {}", namei, t_ret, name, i - 1);
+                    namej += '.' + std::to_string(j);
+                    bb.tail("{} = extractvalue {} {}, {}", namej, t_ret, name, j);
                 }
                 assert(!Axm::isa<mem::M>(phi->type()));
-                lam2bb_[ret_lam].phis[phi].emplace_back(namei, id(lam, true));
+                lam2bb_[ret_lam].phis[phi].emplace_back(namej, id(lam, true));
                 locals_[phi] = id(phi);
+                ++j;
             }
         }
 
@@ -467,7 +449,7 @@ std::string Emitter::emit_bb(BB& bb, const Def* def) {
             return emit(tuple->proj(2, 1));
         }
 
-        if (is_const(tuple)) {
+        if (tuple->is_closed()) {
             bool is_array = tuple->type()->isa<Arr>();
 
             std::string s;

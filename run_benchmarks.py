@@ -229,11 +229,17 @@ def merge_llvm_results():
         for algo in ["dom", "inl", "opt"]:
             merge(f"{row}.{algo}")
 
+def make_figure():
+    os.chdir('tex')
+    run_cmd('pdflatex bench.tex && pdflatex bench.tex')
+    os.chdir('..')
+
 def main():
     run_mimir_benchmarks()
     run_llvm_benchmarks()
     merge_mimir_results()
     merge_llvm_results()
+    make_figure ()
 
 if __name__ == "__main__":
     main()

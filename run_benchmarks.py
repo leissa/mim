@@ -37,8 +37,8 @@ ITERS = {
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--warmups",     action="store_true", help="use 3 warmups before measuring")
-parser.add_argument("--runs",        action="store_true", help="measure 9 runs and compute median instead of just 1")
-parser.add_argument("--all-iters",   action="store_true", help="by default only a limited number of n; this option includes all `n's")
+parser.add_argument("--runs",        action="store_true", help="measure 9 runs and compute median instead of just 1 run")
+parser.add_argument("--all-iters",   action="store_true", help="by default only a limited number of n; this option includes all `n''s")
 parser.add_argument("--remove-llvm", action="store_true", help="removes *.ll files and recreates them during benchmarking; this takes a while!")
 args = parser.parse_args()
 

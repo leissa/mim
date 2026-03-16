@@ -2,39 +2,21 @@
 
 import subprocess
 import glob
+import os
 import pandas as pd
 import numpy as np
 import re
+import argparse
 
 # === CONFIG ===
-WARMUP_RUNS   = 3
-N_RUNS        = 9
-ALGOS         = ["fvs", "nest", "beta"]
-SETS          = ["trie", "immer", "set"]
-ROWS          = [0, 1, 2]
-TASKSET_MASK  = "0x1"         # CPU core mask (e.g. 0x1 = core 0)
-OPT           = "opt"
+WARUMUPS     = 0
+RUNS         = 1
+ALGOS        = ["fvs", "nest", "beta"]
+SETS         = ["trie", "immer", "set"]
+ROWS         = [0, 1, 2]
+TASKSET_MASK = "0x1"         # CPU core mask (e.g. 0x1 = core 0)
+OPT          = "opt"
 
-ITERS = {
-    "trie" : {
-        0: 20,
-        1: 20,
-        2: 11,
-    },
-    "immer" : {
-        0: 20,
-        1: 13,
-        2: 11,
-    },
-    "set" : {
-        0: 15,
-        1: 13,
-        2: 10,
-    },
-}
-
-#WARMUP_RUNS   = 0
-#N_RUNS        = 1
 ITERS = {
     "trie" : {
         0: 10,
@@ -53,6 +35,43 @@ ITERS = {
     },
 }
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--warmups",     action="store_true", help="use 3 warmups before measuring")
+parser.add_argument("--runs",        action="store_true", help="measure 9 runs and compute median instead of just 1")
+parser.add_argument("--all-iters",   action="store_true", help="by default only a limited number of n; this option includes all `n's")
+parser.add_argument("--remove-llvm", action="store_true", help="removes *.ll files and recreates them during benchmarking; this takes a while!")
+args = parser.parse_args()
+
+if args.warmups:
+    WARMUP = 3
+
+if args.runs:
+    RUNS = 9
+
+if args.all_iters:
+    ITERS = {
+        "trie" : {
+            0: 20,
+            1: 20,
+            2: 11,
+        },
+        "immer" : {
+            0: 20,
+            1: 13,
+            2: 11,
+        },
+        "set" : {
+            0: 15,
+            1: 13,
+            2: 10,
+        },
+    }
+
+if args.remove_llvm:
+    print("remove all *.ll files")
+    for ll in glob.glob("*.ll"):
+        os.remove(ll)
+
 def run_cmd(cmd, capture_output=False):
     cmd = f"taskset {TASKSET_MASK} {cmd}"
     if not capture_output:
@@ -66,16 +85,16 @@ def run_mimir_benchmarks():
             bench = f"release_{set}/bin/bench"
             iter  = ITERS[set][row]
             # --- Warmup runs ---
-            print(f"Performing {WARMUP_RUNS} warmup runs (results ignored)...")
-            for i in range(1, WARMUP_RUNS + 1):
+            print(f"Performing {WARUMUPS} warmup runs (results ignored)...")
+            for i in range(1, WARUMUPS + 1):
                 suffix = f"warmup{i}"
                 cmd    = f"{bench} {iter} {row} {suffix}"
                 run_cmd(cmd)
             print("Warmup complete.\n")
 
             # --- Actual measurement runs ---
-            for i in range(1, N_RUNS + 1):
-                print(f"Running benchmark {i}/{N_RUNS} pinned to core mask {TASKSET_MASK} ...")
+            for i in range(1, RUNS + 1):
+                print(f"Running benchmark {i}/{RUNS} pinned to core mask {TASKSET_MASK} ...")
                 suffix = f"run{i}"
                 cmd    = f"{bench} {iter} {row} {suffix}"
                 run_cmd(cmd)
@@ -126,13 +145,13 @@ def run_llvm_benchmarks():
             # dominance
             cmd = f"{OPT} -passes='require<domtree>' -disable-output -time-passes {ll}"
 
-            print(f"Performing {WARMUP_RUNS} warmup runs (results ignored)...")
-            for _ in range(1, WARMUP_RUNS + 1):
+            print(f"Performing {WARUMUPS} warmup runs (results ignored)...")
+            for _ in range(1, WARUMUPS + 1):
                 run_cmd(cmd, capture_output=True)
             print("Warmup complete.\n")
 
             # --- Actual measurement runs ---
-            for i in range(1, N_RUNS + 1):
+            for i in range(1, RUNS + 1):
                 with open(f"{row}.dom.run{i}", "w" if n == 1 else "a") as f:
                     if n == 1:
                         f.write("% n ms\n")
@@ -144,13 +163,13 @@ def run_llvm_benchmarks():
 
             cmd = f"{OPT} -passes='inline' -disable-output -time-passes {ll}"
 
-            print(f"Performing {WARMUP_RUNS} warmup runs (results ignored)...")
-            for _ in range(1, WARMUP_RUNS + 1):
+            print(f"Performing {WARUMUPS} warmup runs (results ignored)...")
+            for _ in range(1, WARUMUPS + 1):
                 run_cmd(cmd, capture_output=True)
             print("Warmup complete.\n")
 
             # --- Actual measurement runs ---
-            for i in range(1, N_RUNS + 1):
+            for i in range(1, RUNS + 1):
                 with open(f"{row}.inl.run{i}", "w" if n == 1 else "a") as f:
                     opt_out = run_cmd(cmd, capture_output=True)
                     t = extract_wall_time(opt_out, "InlinerPass")
@@ -159,13 +178,13 @@ def run_llvm_benchmarks():
             # inline + optimize
 
             cmd = f"{OPT} -passes='inline,instcombine,early-cse,dce,unreachableblockelim' -disable-output -time-passes {ll}"
-            print(f"Performing {WARMUP_RUNS} warmup runs (results ignored)...")
-            for _ in range(1, WARMUP_RUNS + 1):
+            print(f"Performing {WARUMUPS} warmup runs (results ignored)...")
+            for _ in range(1, WARUMUPS + 1):
                 run_cmd(cmd, capture_output=True)
             print("Warmup complete.\n")
 
             # --- Actual measurement runs ---
-            for i in range(1, N_RUNS + 1):
+            for i in range(1, RUNS + 1):
                 with open(f"{row}.opt.run{i}", "w" if n == 1 else "a") as f:
                     opt_out = run_cmd(cmd, capture_output=True)
                     t = 0

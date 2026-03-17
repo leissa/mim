@@ -4,6 +4,7 @@
 *.bc
 *.cl
 *.cu
+*.ll
 *.nvvm
 *.out
 *.s

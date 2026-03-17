@@ -199,25 +199,25 @@ def run_llvm_benchmarks():
             bench_ll(n, ll, row, n == 1)
 
 def run_regex_benchmarks():
-    # for set in SETS:
-    #     bench = f"release_{set}/bin/bench-regex"
-    #     # --- Warmup runs ---
-    #     print(f"Performing {WARMUPS} warmup runs (results ignored)...")
-    #     for i in range(1, WARMUPS + 1):
-    #         suffix = f"warmup{i}"
-    #         cmd    = f"{bench} {suffix}"
-    #         run_cmd(cmd)
-    #     print("Warmup complete.\n")
-    #
-    #     # --- Actual measurement runs ---
-    #     for i in range(1, RUNS + 1):
-    #         print(f"Running benchmark {i}/{RUNS} pinned to core mask {TASKSET_MASK} ...")
-    #         suffix = f"run{i}"
-    #         cmd    = f"{bench} {suffix}"
-    #         run_cmd(cmd)
+    for set in SETS:
+        bench = f"release_{set}/bin/bench-regex"
+        # --- Warmup runs ---
+        print(f"Performing {WARMUPS} warmup runs (results ignored)...")
+        for i in range(1, WARMUPS + 1):
+            suffix = f"warmup{i}"
+            cmd    = f"{bench} {suffix}"
+            run_cmd(cmd)
+        print("Warmup complete.\n")
+
+        # --- Actual measurement runs ---
+        for i in range(1, RUNS + 1):
+            print(f"Running benchmark {i}/{RUNS} pinned to core mask {TASKSET_MASK} ...")
+            suffix = f"run{i}"
+            cmd    = f"{bench} {suffix}"
+            run_cmd(cmd)
 
     lls = []
-    for ll in glob.glob("*.regex_ll"):
+    for ll in glob.glob("*.regex*ll"):
         parts = ll.split('.')
         if len(parts) == 2:
             num_str = parts[0]
@@ -274,9 +274,9 @@ def make_figure():
     os.chdir('..')
 
 def main():
-    run_mimir_benchmarks()
+    #run_mimir_benchmarks()
     run_regex_benchmarks()
-    run_llvm_benchmarks()
+    #run_llvm_benchmarks()
     merge_mimir_results()
     merge_llvm_results()
     make_figure()

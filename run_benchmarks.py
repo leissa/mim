@@ -122,6 +122,60 @@ def extract_wall_time(opt_out, pass_name):
 
     return 0
 
+def bench_ll(n, ll, prefix, first):
+    # dominance
+    cmd = f"{OPT} -passes='require<domtree>' -disable-output -time-passes {ll}"
+
+    print(f"Performing {WARUMUPS} warmup runs (results ignored)...")
+    for _ in range(1, WARUMUPS + 1):
+        run_cmd(cmd, capture_output=True)
+    print("Warmup complete.\n")
+
+    # --- Actual measurement runs ---
+    for i in range(1, RUNS + 1):
+        with open(f"{prefix}.dom.run{i}", "w" if first else "a") as f:
+            if first:
+                f.write("% n ms\n")
+            opt_out = run_cmd(cmd, capture_output=True)
+            t = extract_wall_time(opt_out, "RequireAnalysisPass<llvm::DominatorTreeAnalysis, llvm::Function, llvm::AnalysisManager<Function>>")
+            f.write(f"{n} {t}\n")
+
+    # inline
+
+    cmd = f"{OPT} -passes='inline' -disable-output -time-passes {ll}"
+
+    print(f"Performing {WARUMUPS} warmup runs (results ignored)...")
+    for _ in range(1, WARUMUPS + 1):
+        run_cmd(cmd, capture_output=True)
+    print("Warmup complete.\n")
+
+    # --- Actual measurement runs ---
+    for i in range(1, RUNS + 1):
+        with open(f"{prefix}.inl.run{i}", "w" if n == 1 else "a") as f:
+            opt_out = run_cmd(cmd, capture_output=True)
+            t = extract_wall_time(opt_out, "InlinerPass")
+            f.write(f"{n} {t}\n")
+
+    # inline + optimize
+
+    cmd = f"{OPT} -passes='inline,instcombine<no-verify-fixpoint>,early-cse,dce,unreachableblockelim' -disable-output -time-passes {ll}"
+    print(f"Performing {WARUMUPS} warmup runs (results ignored)...")
+    for _ in range(1, WARUMUPS + 1):
+        run_cmd(cmd, capture_output=True)
+    print("Warmup complete.\n")
+
+    # --- Actual measurement runs ---
+    for i in range(1, RUNS + 1):
+        with open(f"{prefix}.opt.run{i}", "w" if n == 1 else "a") as f:
+            opt_out = run_cmd(cmd, capture_output=True)
+            t = 0
+            t += extract_wall_time(opt_out, "DCEPass")
+            t += extract_wall_time(opt_out, "EarlyCSEPass")
+            t += extract_wall_time(opt_out, "InlinerPass")
+            t += extract_wall_time(opt_out, "InstCombinePass")
+            t += extract_wall_time(opt_out, "UnreachableBlockElimPass")
+            f.write(f"{n} {t}\n")
+
 def run_llvm_benchmarks():
     for row in ROWS:
         lls = []
@@ -142,58 +196,43 @@ def run_llvm_benchmarks():
         lls.sort(key = lambda num_ll: num_ll[0])
 
         for n, ll in lls:
-            # dominance
-            cmd = f"{OPT} -passes='require<domtree>' -disable-output -time-passes {ll}"
+            bench_ll(n, ll, row, n == 1)
 
-            print(f"Performing {WARUMUPS} warmup runs (results ignored)...")
-            for _ in range(1, WARUMUPS + 1):
-                run_cmd(cmd, capture_output=True)
-            print("Warmup complete.\n")
+def run_regex_benchmarks():
+    # for set in SETS:
+    #     bench = f"release_{set}/bin/bench-regex"
+    #     # --- Warmup runs ---
+    #     print(f"Performing {WARUMUPS} warmup runs (results ignored)...")
+    #     for i in range(1, WARUMUPS + 1):
+    #         suffix = f"warmup{i}"
+    #         cmd    = f"{bench} {suffix}"
+    #         run_cmd(cmd)
+    #     print("Warmup complete.\n")
+    #
+    #     # --- Actual measurement runs ---
+    #     for i in range(1, RUNS + 1):
+    #         print(f"Running benchmark {i}/{RUNS} pinned to core mask {TASKSET_MASK} ...")
+    #         suffix = f"run{i}"
+    #         cmd    = f"{bench} {suffix}"
+    #         run_cmd(cmd)
 
-            # --- Actual measurement runs ---
-            for i in range(1, RUNS + 1):
-                with open(f"{row}.dom.run{i}", "w" if n == 1 else "a") as f:
-                    if n == 1:
-                        f.write("% n ms\n")
-                    opt_out = run_cmd(cmd, capture_output=True)
-                    t = extract_wall_time(opt_out, "RequireAnalysisPass<llvm::DominatorTreeAnalysis, llvm::Function, llvm::AnalysisManager<Function>>")
-                    f.write(f"{n} {t}\n")
+    lls = []
+    for ll in glob.glob("*.regex_ll"):
+        parts = ll.split('.')
+        if len(parts) == 2:
+            num_str = parts[0]
+            try:
+                num = int(num_str)
+                lls.append((num, ll))
+            except ValueError:
+                print(f"Warning: '{num_str}' in {ll} is not an integer.")
+        else:
+            print(f"Warning: {ll} does not match expected format.")
 
-            # inline
+    lls.sort(key = lambda num_ll: num_ll[0])
 
-            cmd = f"{OPT} -passes='inline' -disable-output -time-passes {ll}"
-
-            print(f"Performing {WARUMUPS} warmup runs (results ignored)...")
-            for _ in range(1, WARUMUPS + 1):
-                run_cmd(cmd, capture_output=True)
-            print("Warmup complete.\n")
-
-            # --- Actual measurement runs ---
-            for i in range(1, RUNS + 1):
-                with open(f"{row}.inl.run{i}", "w" if n == 1 else "a") as f:
-                    opt_out = run_cmd(cmd, capture_output=True)
-                    t = extract_wall_time(opt_out, "InlinerPass")
-                    f.write(f"{n} {t}\n")
-
-            # inline + optimize
-
-            cmd = f"{OPT} -passes='inline,instcombine,early-cse,dce,unreachableblockelim' -disable-output -time-passes {ll}"
-            print(f"Performing {WARUMUPS} warmup runs (results ignored)...")
-            for _ in range(1, WARUMUPS + 1):
-                run_cmd(cmd, capture_output=True)
-            print("Warmup complete.\n")
-
-            # --- Actual measurement runs ---
-            for i in range(1, RUNS + 1):
-                with open(f"{row}.opt.run{i}", "w" if n == 1 else "a") as f:
-                    opt_out = run_cmd(cmd, capture_output=True)
-                    t = 0
-                    t += extract_wall_time(opt_out, "DCEPass")
-                    t += extract_wall_time(opt_out, "EarlyCSEPass")
-                    t += extract_wall_time(opt_out, "InlinerPass")
-                    t += extract_wall_time(opt_out, "InstCombinePass")
-                    t += extract_wall_time(opt_out, "UnreachableBlockElimPass")
-                    f.write(f"{n} {t}\n")
+    for n, ll in lls:
+        bench_ll(n, ll, "regex", n == lls[0][0])
 
 def merge(prefix):
     g = f"{prefix}.run*"
@@ -225,7 +264,7 @@ def merge_mimir_results():
                 merge(f"{set}.{algo}.{row}")
 
 def merge_llvm_results():
-    for row in ROWS:
+    for row in ["0", "1", "2", "regex"]:
         for algo in ["dom", "inl", "opt"]:
             merge(f"{row}.{algo}")
 
@@ -236,6 +275,7 @@ def make_figure():
 
 def main():
     run_mimir_benchmarks()
+    run_regex_benchmarks()
     run_llvm_benchmarks()
     merge_mimir_results()
     merge_llvm_results()

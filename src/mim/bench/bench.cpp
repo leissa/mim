@@ -183,31 +183,23 @@ int main(int argc, const char** argv) {
     std::ofstream ofs[File_Num];
     std::string names[File_Num];
     auto algos = std::array<std::string, File_Num>{"fvs."s, "nest."s, "beta."s};
-    auto usage = [argv] { std::cerr << "usage: " << argv[0] << " <iter> 0|1|2 [suffix]" << std::endl; };
+    auto usage = [argv] { std::cerr << "usage: " << argv[0] << " <iter> 0|1|2 <suffix>" << std::endl; };
 
-    if (argc != 3 && argc != 4) {
-        usage();
-        return EXIT_FAILURE;
-    }
+    if (argc != 4) return usage(), EXIT_FAILURE;
 
     int iter = std::stoi(argv[1]);
     std::cout << iter << std::endl;
 
     char row;
-    if (false) {
-    } else if (strcmp(argv[2], "0") == 0)
-        row = '0';
-    else if (strcmp(argv[2], "1") == 0)
-        row = '1';
-    else if (strcmp(argv[2], "2") == 0)
-        row = '2';
-    else {
-        usage();
-        return EXIT_FAILURE;
-    }
+    // clang-format off
+    if (false) {}
+    else if (strcmp(argv[2], "0") == 0) row = '0';
+    else if (strcmp(argv[2], "1") == 0) row = '1';
+    else if (strcmp(argv[2], "2") == 0) row = '2';
+    else return usage(), EXIT_FAILURE;
+    // clang-format on
 
-    std::string suffix;
-    if (argc >= 4) suffix = argv[3];
+    std::string suffix = argv[3];
 
     for (int i = 0; i != File_Num; ++i) {
         std::string name = Set;

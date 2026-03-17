@@ -1,6 +1,9 @@
-add_executable(bench main.cpp)
+add_executable(bench bench.cpp)
 target_link_libraries(bench libmim)
-# set_target_properties(mim PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
-# install(TARGETS mim EXPORT mim-targets)
-add_dependencies(bench   mim_internal_core)
+add_dependencies(bench mim_internal_core)
 add_dependencies(mim_all bench)
+
+add_executable(bench-regex regex.cpp)
+target_link_libraries(bench-regex libmim)
+add_dependencies(bench-regex mim_internal_core mim_internal_regex)
+add_dependencies(mim_all bench-regex)

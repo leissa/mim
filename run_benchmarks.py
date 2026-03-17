@@ -9,7 +9,7 @@ import re
 import argparse
 
 # === CONFIG ===
-WARUMUPS     = 0
+WARMUPS     = 0
 RUNS         = 1
 ALGOS        = ["fvs", "nest", "beta"]
 SETS         = ["trie", "immer", "set"]
@@ -43,7 +43,7 @@ parser.add_argument("--remove-llvm", action="store_true", help="removes *.ll fil
 args = parser.parse_args()
 
 if args.warmups:
-    WARMUP = 3
+    WARMUPS = 3
 
 if args.runs:
     RUNS = 9
@@ -85,8 +85,8 @@ def run_mimir_benchmarks():
             bench = f"release_{set}/bin/bench"
             iter  = ITERS[set][row]
             # --- Warmup runs ---
-            print(f"Performing {WARUMUPS} warmup runs (results ignored)...")
-            for i in range(1, WARUMUPS + 1):
+            print(f"Performing {WARMUPS} warmup runs (results ignored)...")
+            for i in range(1, WARMUPS + 1):
                 suffix = f"warmup{i}"
                 cmd    = f"{bench} {iter} {row} {suffix}"
                 run_cmd(cmd)
@@ -126,8 +126,8 @@ def bench_ll(n, ll, prefix, first):
     # dominance
     cmd = f"{OPT} -passes='require<domtree>' -disable-output -time-passes {ll}"
 
-    print(f"Performing {WARUMUPS} warmup runs (results ignored)...")
-    for _ in range(1, WARUMUPS + 1):
+    print(f"Performing {WARMUPS} warmup runs (results ignored)...")
+    for _ in range(1, WARMUPS + 1):
         run_cmd(cmd, capture_output=True)
     print("Warmup complete.\n")
 
@@ -144,8 +144,8 @@ def bench_ll(n, ll, prefix, first):
 
     cmd = f"{OPT} -passes='inline' -disable-output -time-passes {ll}"
 
-    print(f"Performing {WARUMUPS} warmup runs (results ignored)...")
-    for _ in range(1, WARUMUPS + 1):
+    print(f"Performing {WARMUPS} warmup runs (results ignored)...")
+    for _ in range(1, WARMUPS + 1):
         run_cmd(cmd, capture_output=True)
     print("Warmup complete.\n")
 
@@ -159,8 +159,8 @@ def bench_ll(n, ll, prefix, first):
     # inline + optimize
 
     cmd = f"{OPT} -passes='inline,instcombine<no-verify-fixpoint>,early-cse,dce,unreachableblockelim' -disable-output -time-passes {ll}"
-    print(f"Performing {WARUMUPS} warmup runs (results ignored)...")
-    for _ in range(1, WARUMUPS + 1):
+    print(f"Performing {WARMUPS} warmup runs (results ignored)...")
+    for _ in range(1, WARMUPS + 1):
         run_cmd(cmd, capture_output=True)
     print("Warmup complete.\n")
 
@@ -202,8 +202,8 @@ def run_regex_benchmarks():
     # for set in SETS:
     #     bench = f"release_{set}/bin/bench-regex"
     #     # --- Warmup runs ---
-    #     print(f"Performing {WARUMUPS} warmup runs (results ignored)...")
-    #     for i in range(1, WARUMUPS + 1):
+    #     print(f"Performing {WARMUPS} warmup runs (results ignored)...")
+    #     for i in range(1, WARMUPS + 1):
     #         suffix = f"warmup{i}"
     #         cmd    = f"{bench} {suffix}"
     #         run_cmd(cmd)

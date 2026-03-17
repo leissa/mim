@@ -192,12 +192,12 @@
 			\myplot{ACMPurple2}{densely dashed,mark=diamond*}{../2.inl.merged};
 			\myplot{ACMPurple}{densely dashed,mark=pentagon*}{../2.opt.merged};
 
-            \plot [ACMOrange!40, smooth,domain=1:1024,xshift=32] {(x * ln(x) / ln(2))^2};
+            \plot [ACMOrange!40, smooth,domain=1:4096,xshift=32] {(x * ln(x) / ln(2))^2};
             \label{nlogn2}
 
 			\nextgroupplot
 
-            \addplot[ACMOrange!40, smooth,domain=1:1024,xshift=38] {(x * ln(x) / ln(2))^2};
+            \addplot[ACMOrange!40, smooth,domain=1:4096,xshift=38] {(x * ln(x) / ln(2))^2};
 
 			\myplot{ACMBlue}{mark=*,ultra thick}{../trie.nest.2.merged};
 			\myplot{ACMOrange}{mark=square*}{../immer.nest.2.merged};

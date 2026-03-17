@@ -9,7 +9,7 @@ import re
 import argparse
 
 # === CONFIG ===
-WARMUPS     = 0
+WARMUPS      = 0
 RUNS         = 1
 ALGOS        = ["fvs", "nest", "beta"]
 SETS         = ["trie", "immer", "set"]
@@ -151,7 +151,9 @@ def bench_ll(n, ll, prefix, first):
 
     # --- Actual measurement runs ---
     for i in range(1, RUNS + 1):
-        with open(f"{prefix}.inl.run{i}", "w" if n == 1 else "a") as f:
+        with open(f"{prefix}.inl.run{i}", "w" if first else "a") as f:
+            if first:
+                f.write("% n ms\n")
             opt_out = run_cmd(cmd, capture_output=True)
             t = extract_wall_time(opt_out, "InlinerPass")
             f.write(f"{n} {t}\n")
@@ -166,7 +168,9 @@ def bench_ll(n, ll, prefix, first):
 
     # --- Actual measurement runs ---
     for i in range(1, RUNS + 1):
-        with open(f"{prefix}.opt.run{i}", "w" if n == 1 else "a") as f:
+        with open(f"{prefix}.opt.run{i}", "w" if first else "a") as f:
+            if first:
+                f.write("% n ms\n")
             opt_out = run_cmd(cmd, capture_output=True)
             t = 0
             t += extract_wall_time(opt_out, "DCEPass")
@@ -217,10 +221,10 @@ def run_regex_benchmarks():
             run_cmd(cmd)
 
     lls = []
-    for ll in glob.glob("*.regex*ll"):
+    for ll in glob.glob("regex.*.ll"):
         parts = ll.split('.')
-        if len(parts) == 2:
-            num_str = parts[0]
+        if len(parts) == 3:
+            num_str = parts[1]
             try:
                 num = int(num_str)
                 lls.append((num, ll))
@@ -259,7 +263,7 @@ def merge(prefix):
 
 def merge_mimir_results():
     for set in SETS:
-        for row in ROWS:
+        for row in ["0", "1", "2", "regex"]:
             for algo in ALGOS:
                 merge(f"{set}.{algo}.{row}")
 
@@ -274,9 +278,9 @@ def make_figure():
     os.chdir('..')
 
 def main():
-    #run_mimir_benchmarks()
+    run_mimir_benchmarks()
     run_regex_benchmarks()
-    #run_llvm_benchmarks()
+    run_llvm_benchmarks()
     merge_mimir_results()
     merge_llvm_results()
     make_figure()

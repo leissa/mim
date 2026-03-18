@@ -225,4 +225,23 @@
     \label{fig:bench}
 \end{figure}
 
+
+% Load the data file
+\pgfplotstableread[header=true]{../regex.dom.merged}\datadom
+\pgfplotstableread[header=true]{../regex.inl.merged}\datainl
+\pgfplotstableread[header=true]{../regex.opt.merged}\dataopt
+\pgfplotstableread[header=true]{../trie.fvs.regex.merged}\datafvs
+\pgfplotstableread[header=true]{../trie.beta.regex.merged}\databeta
+
+\pgfplotstablegetelem{0}{median}\of{\datadom}  \edef\vardom{\pgfplotsretval}
+\pgfplotstablegetelem{0}{median}\of{\datainl}  \edef\varinl{\pgfplotsretval}
+\pgfplotstablegetelem{0}{median}\of{\dataopt}  \edef\varopt{\pgfplotsretval}
+\pgfplotstablegetelem{0}{median}\of{\datafvs}  \edef\varfvs{\pgfplotsretval}
+\pgfplotstablegetelem{0}{median}\of{\databeta} \edef\varbeta{\pgfplotsretval}
+
+To evaluate how \mimir and \llvm compare on real-world programs with large control flow graphs, we used \mimir's \texttt{regex} plugin to compile a large regular expression matching a single HTTP access-log line, incorporating extensive enumerations of HTTP methods, status codes, timestamps, and path characters.
+The resulting matcher contains 1058 continuations in \mimir and the same number of basic blocks when compiled to \llvm.
+Free variable analysis took $\varfvs\,\mu$s, while \llvm's dominance analysis completed in $\approx\!\vardom\,\mu$s.
+$\beta$-reduction required $\varbeta\,\mu$s, whereas inlining took $\approx\!\varinl\,\mu$s (up to $\approx\!\varopt\,\mu$s with optimizations).
+
 \end{document}

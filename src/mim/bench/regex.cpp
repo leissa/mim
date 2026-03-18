@@ -169,7 +169,7 @@ int main(int argc, const char** argv) {
             ofs[i] << "% n ms" << std::endl;
         }
 
-        mim::bench::do_bench(0, ofs, prog0);
+        // mim::bench::do_bench(0, ofs, prog0);
         mim::bench::do_bench(1, ofs, prog1);
     } catch (const mim::Error& e) {
         std::cerr << e;

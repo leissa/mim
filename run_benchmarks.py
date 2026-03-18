@@ -203,22 +203,22 @@ def run_llvm_benchmarks():
             bench_ll(n, ll, row, n == 1)
 
 def run_regex_benchmarks():
-    for set in SETS:
-        bench = f"release_{set}/bin/bench-regex"
-        # --- Warmup runs ---
-        print(f"Performing {WARMUPS} warmup runs (results ignored)...")
-        for i in range(1, WARMUPS + 1):
-            suffix = f"warmup{i}"
-            cmd    = f"{bench} {suffix}"
-            run_cmd(cmd)
-        print("Warmup complete.\n")
+    set = "trie"
+    bench = f"release_{set}/bin/bench-regex"
+    # --- Warmup runs ---
+    print(f"Performing {WARMUPS} warmup runs (results ignored)...")
+    for i in range(1, WARMUPS + 1):
+        suffix = f"warmup{i}"
+        cmd    = f"{bench} {suffix}"
+        run_cmd(cmd)
+    print("Warmup complete.\n")
 
-        # --- Actual measurement runs ---
-        for i in range(1, RUNS + 1):
-            print(f"Running benchmark {i}/{RUNS} pinned to core mask {TASKSET_MASK} ...")
-            suffix = f"run{i}"
-            cmd    = f"{bench} {suffix}"
-            run_cmd(cmd)
+    # --- Actual measurement runs ---
+    for i in range(1, RUNS + 1):
+        print(f"Running benchmark {i}/{RUNS} pinned to core mask {TASKSET_MASK} ...")
+        suffix = f"run{i}"
+        cmd    = f"{bench} {suffix}"
+        run_cmd(cmd)
 
     lls = []
     for ll in glob.glob("regex.*.ll"):
